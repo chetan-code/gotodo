@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/chetan-code/webserver/internal/models"
-	"github.com/chetan-code/webserver/internal/repository"
+	"github.com/chetan-code/gotodo/internal/models"
+	"github.com/chetan-code/gotodo/internal/repository"
 )
 
 type TodoHandler struct {

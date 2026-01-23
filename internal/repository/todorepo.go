@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/chetan-code/webserver/internal/models"
+	"github.com/chetan-code/gotodo/internal/models"
 )
 
 type TodoRepo struct {

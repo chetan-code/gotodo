@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/chetan-code/webserver/internal/handler"
-	"github.com/chetan-code/webserver/internal/repository"
+	"github.com/chetan-code/gotodo/internal/handler"
+	"github.com/chetan-code/gotodo/internal/repository"
 	"github.com/gorilla/sessions"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"

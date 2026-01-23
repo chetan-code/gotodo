@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/chetan-code/webserver/internal/models"
+	"github.com/chetan-code/gotodo/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth/gothic"
 )
