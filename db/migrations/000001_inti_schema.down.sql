@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_todos_email;
+DROP TABLE IF EXISTS todos;

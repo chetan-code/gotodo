@@ -44,11 +44,14 @@ func (r *TodoRepo) FetchTask(email string) ([]models.Task, error) {
 	return tasks, nil
 }
 
+/*THIS WILL NOT BE CALLED IF YOU ALREADY HAVE TABLE IN DB*/
 func (r *TodoRepo) CreateTable() error {
 	createTableQuery := `CREATE TABLE IF NOT EXISTS todos(
-		id SERIAL PRIMARY KEY,
-		email TEXT NOT NULL,
-		task TEXT NOT NULL
+		    id SERIAL PRIMARY KEY,
+			email TEXT NOT NULL,
+			title TEXT NOT NULL,
+			is_done BOOLEAN DEFAULT FALSE,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 	);`
 	_, err := r.db.Exec(createTableQuery)
 	return err
