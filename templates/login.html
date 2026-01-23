@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login - Go Todo App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--background-color);
+        }
+        article {
+            width: 100%;
+            max-width: 400px;
+        }
+        .error-box {
+            background-color: #ff3e3e21;
+            border-left: 4px solid #ff3e3e;
+            padding: 10px;
+            margin-bottom: 20px;
+            color: #ff3e3e;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <article>
+        <header>
+            <hgroup>
+                <h1>Sign in</h1>
+                <h2>Access your personal todo list</h2>
+            </hgroup>
+        </header>
+
+        {{if .}}
+            <div class="error-box">
+                <strong>Error:</strong> {{.}}
+            </div>
+        {{end}}
+
+        <a href="/auth/google" role="button" class="contrast">
+    Login with Google
+</a>
+        
+        <footer>
+            <small>We don't store any private profile info!</small>
+        </footer>
+    </article>
+</body>
+</html>

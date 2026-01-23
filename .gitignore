@@ -1,0 +1,33 @@
+# Binaries
+main
+webserver
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go specific
+vendor/
+# (Only ignore vendor if you aren't using 'go mod vendor')
+
+# Environment variables
+.env
+*.env.local
+
+# Database / Docker
+# If you eventually use a local data folder for Postgres
+pgdata/
+.db_data/
+
+# IDEs
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# HTMX / Frontend (if you use tools later)
+node_modules/
+dist/
