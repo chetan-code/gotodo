@@ -2,7 +2,11 @@
 
 A high-performance, multi-user Todo application built with **Go (Golang)**. This project demonstrates a production-ready backend architecture using Clean Architecture principles, secure OAuth2 authentication, and hypermedia-driven UI updates.
 
-
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/237b25b3-e122-476f-8464-f8f96dade50c" width="100%" muted autoplay loop controls>
+    Your browser does not support the video tag.
+  </video>
+</div>
 
 ## Key Technical Features
 
