@@ -14,8 +14,25 @@
             list-style: none;
             padding: 0;
             margin-bottom: 2rem;
+
+            /* The Scroll Magic */
+            max-height: 400px;    /* Change this to your preferred height */
+            overflow-y: auto;     /* Adds scrollbar only when needed */
+            overflow-x: hidden;   /* Prevents horizontal shaking */
+            
+            /* Optional: Custom scrollbar for a cleaner look */
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
         }
         
+        /* For Chrome/Safari/Edge browsers */
+        .todo-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .todo-list::-webkit-scrollbar-thumb {
+            background-color: var(--primary);
+            border-radius: 10px;
+        }
         .todo-item {
             display: flex;
             align-items: center;
@@ -48,8 +65,32 @@
                     <small>{{.Email}}</small>
                 </div>
             </header>
+            <div id="stats-container" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">
+                {{block "stats-container" .}}
+                <span>Total: <strong>{{.Stats.Total}}</strong></span>
+                <span style="color: var(--primary);">Pending: <strong>{{.Stats.Pending}}</strong></span>
+                <span style="color: var(--secondary);">Done: <strong>{{.Stats.Completed}}</strong></span>
+                {{end}}
+            </div>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 10px;">
+            <input type="search" 
+                name="search" 
+                placeholder="🔍 Search tasks..." 
+                hx-get="/todos" 
+                hx-target="#todo-list" 
+                hx-trigger="keyup changed delay:500ms, search" 
+                style="margin-bottom: 0;">
 
-           <ul class="todo-list" id="todo-list">
+            <select name="status" 
+                    hx-get="/todos" 
+                    hx-target="#todo-list" 
+                    style="width: 150px; margin-bottom: 0;">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+            </select>
+            </div>
+           <ul class="todo-list" id="todo-list" hx-preserve="true">
             {{block "task-list" .}}
                 {{range .Tasks}}
                 <li class="todo-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">

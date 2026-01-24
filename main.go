@@ -2,10 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/chetan-code/gotodo/internal/handler"
 	"github.com/chetan-code/gotodo/internal/repository"
@@ -17,46 +17,48 @@ import (
 	"github.com/markbates/goth/providers/google"
 )
 
-func init() {
+func loadEnvVar() {
 	//load env variables
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading environment varibles")
+		slog.Error("environment_var_load_failure", "error", err)
+		os.Exit(1)
 	}
-
-	//in real world app use env variables
-	key := os.Getenv("GOOGLE_CLIENT_ID")
-	secret := os.Getenv("GOOGLE_CLIENT_SECRET")
-	callback := os.Getenv("GOOGLE_CALLBACK_URL")
-	goth.UseProviders(
-		google.New(key, secret, callback, "email", "profile"),
-	)
 }
 
-func initDB(dburl string) *sql.DB {
-	var err error
+func initDB() *sql.DB {
 	// Connection string matches the docker-compose environment variables
-	connStr := dburl
-	db, err := sql.Open("pgx", connStr)
+	dburl := os.Getenv("DB_URL")
+	db, err := sql.Open("pgx", dburl)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("database_intialization_failed", "error", err)
+		os.Exit(1)
 	}
 
-	//check if connectin is alive
+	//check if connectoin is alive
 	err = db.Ping()
 	if err != nil {
-		log.Fatal("Can not connect to db : ", err)
+		slog.Error("database_connection_ping_failed", "error", err)
+		os.Exit(1)
 	}
 
-	fmt.Println("Connected to PostgresSQL!")
+	slog.Info("database_intialisation_success", "url", dburl)
 
 	return db
 }
 
 func loggerMW(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("[%s] %s\n", r.Method, r.URL.Path)
+		start := time.Now()
 		next.ServeHTTP(w, r)
+		//logging completion of a request
+		slog.Info("http_request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"ip", r.RemoteAddr,
+			//imp : how long does it take a req to complete
+			"duration", time.Since(start).String(),
+		)
 	})
 }
 
@@ -78,12 +80,11 @@ func routing(mux *http.ServeMux, h *handler.TodoHandler) {
 }
 
 func startServer(port string, mux http.Handler) {
-	//start server
-	fmt.Println("Server starting on", port)
 	err := http.ListenAndServe(port, mux)
 	if err != nil {
-		fmt.Printf("Error starting server : %s \n", err)
+		slog.Error("server_start_failed", "error", err)
 	}
+	slog.Info("server_start_success", "port", port)
 }
 
 /*
@@ -93,11 +94,20 @@ process was completed from this app only \
 Protection from cross site request forgery
 */
 func setupGothic() {
-	key := os.Getenv("JWT_SECRET")
+	//GOTH google setup
+	key := os.Getenv("GOOGLE_CLIENT_ID")
+	secret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	callback := os.Getenv("GOOGLE_CALLBACK_URL")
+	goth.UseProviders(
+		google.New(key, secret, callback, "email", "profile"),
+	)
+
+	//gothic jwt setup for cookie (cross site req forgery avoidance)
+	keyJWT := os.Getenv("JWT_SECRET")
 	maxAge := 86400 * 30 //30 days
 	isProd := false      //set to true for https
 
-	store := sessions.NewCookieStore([]byte(key))
+	store := sessions.NewCookieStore([]byte(keyJWT))
 	store.MaxAge(maxAge)
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
@@ -106,14 +116,32 @@ func setupGothic() {
 	gothic.Store = store
 }
 
+func setupSlog() {
+	//Json handler that writes to standard out
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug, //log debug and above
+		AddSource: true,            //adds file name and line number
+	})
+
+	//Intialise new logger and set it as default for the server
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+}
+
 func main() {
-	dburl := os.Getenv("DB_URL")
-	db := initDB(dburl)
+
+	//structure logging
+	setupSlog()
+
+	loadEnvVar()
+
+	db := initDB()
 	defer db.Close()
 
 	repo, err := repository.NewTodoRepo(db)
 	if err != nil {
-		log.Fatal("Cant create repo :", err)
+		slog.Error("repository_creation_failed", "error", err)
+		os.Exit(1)
 	}
 	h := handler.NewTodoHandler(repo)
 
