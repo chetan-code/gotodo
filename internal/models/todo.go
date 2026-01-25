@@ -3,11 +3,12 @@ package models
 import "time"
 
 type Task struct {
-	ID        int       `json:"id"`
-	Email     string    `json:"email"`
-	Title     string    `json:"title"`
-	IsDone    bool      `json:"is_done"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          int       `json:"id"`
+	Email       string    `json:"email"`
+	Title       string    `json:"title"`
+	IsDone      bool      `json:"is_done"`
+	CreatedAt   time.Time `json:"created_at"`
+	WorkerEmail string    `json:"worker_email"`
 }
 
 // User represent the authenticated person

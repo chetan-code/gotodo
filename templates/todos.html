@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
-        .container { max-width: 600px; margin-top: 50px; }
+        .container { max-width: 1800px; margin-top: 20px; }
         
         /* Clean Bullet Point Styling */
         .todo-list {
@@ -57,97 +57,145 @@
     </style>
 </head>
 <body>
-    <main class="container">
-        <article>
-            <header>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <strong>📝 My Tasks</strong>
-                    <small>{{.Email}}</small>
-                </div>
-            </header>
-            <div id="stats-container" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">
-                {{block "stats-container" .}}
-                <span>Total: <strong>{{.Stats.Total}}</strong></span>
-                <span style="color: var(--primary);">Pending: <strong>{{.Stats.Pending}}</strong></span>
-                <span style="color: var(--secondary);">Done: <strong>{{.Stats.Completed}}</strong></span>
-                {{end}}
-            </div>
-            <div style="margin-bottom: 1.5rem; display: flex; gap: 10px;">
-            <input type="search" 
-                name="search" 
-                placeholder="🔍 Search tasks..." 
-                hx-get="/todos" 
-                hx-target="#todo-list" 
-                hx-trigger="keyup changed delay:500ms, search" 
-                style="margin-bottom: 0;">
+<main class="container" style="max-width: 1800px;">
+    <div class="grid">
+        
+        <aside>
+            <article>
+                <header><strong>📥 Inbox</strong></header>
+                <ul class="todo-list" id="inbox-list">
+                    {{block "inbox-list" .}}
+                        {{range .AssignedTasks}}
+                            <li class="todo-item" style="flex-direction: column; align-items: flex-start; padding: 12px 0;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <strong style="font-size: 0.9rem;">{{.Title}}</strong>
+                                    <input type="checkbox" hx-get="/todos/toggle?id={{.ID}}" hx-target="#inbox-list" {{if .IsDone}}checked{{end}}>
+                                </div>
+                                <small style="opacity: 0.6;">Assignee: {{.Email}}</small>
+                            </li>
+                        {{else}}
+                            <div class="empty-state">
+                                <p style="font-size: 0.8rem;">No tasks from others yet.</p>
+                            </div>
+                        {{end}}
+                    {{end}}
+                </ul>
+            </article>
+        </aside>
 
-            <select name="status" 
-                    hx-get="/todos" 
-                    hx-target="#todo-list" 
-                    style="width: 150px; margin-bottom: 0;">
-                <option value="">All</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-            </select>
-            </div>
-           <ul class="todo-list" id="todo-list" hx-preserve="true">
-            {{block "task-list" .}}
-                {{range .Tasks}}
-                <li class="todo-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div hx-get="/todos/toggle?id={{.ID}}"
-                     hx-target="#todo-list"
-                     hx-swap="innerHTML"
-                     style="cursor: pointer; flex-grow: 1;">
-                    {{if .IsDone}}
-                        <ins>✓ {{.Title}}</ins>
-                    {{else}}
-                        <span>○ {{.Title}}</span>
+        <section>
+            <article>
+                <header>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>📝 My Board</strong>
+                        <small>{{.Email}}</small>
+                    </div>
+                </header>
+
+                <div id="stats-container" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.8rem;">
+                    {{block "stats-container" .}}
+                    <span>Total: <strong>{{.Stats.Total}}</strong></span>
+                    <span style="color: var(--primary);">Pending: <strong>{{.Stats.Pending}}</strong></span>
+                    <span style="color: var(--secondary);">Done: <strong>{{.Stats.Completed}}</strong></span>
                     {{end}}
                 </div>
 
-                <a hx-delete="/todos/delete?id={{.ID}}" 
-                    hx-target="closest li"
-                    hx-swap = "outerHTML swap:300ms"
-                    hx-confirm="Delete this task?"
-                    style="color: #ff3e3e; cursor: pointer; text-decoration: none; font-weight: bold; padding: 0 10px;">
-                    &times;
-                </a>
-                </li>
-                {{else}}
-                <div class="empty-state">
-                    <p>✨ All caught up!</p>
+                <div style="margin-bottom: 1rem; display: flex; gap: 5px;">
+                    <input type="search" name="search" placeholder="Search..." hx-get="/todos" hx-target="#todo-list" hx-trigger="keyup changed delay:500ms" style="font-size: 0.8rem;">
+                    <select name="status" hx-get="/todos" hx-target="#todo-list" style="width: 120px; font-size: 0.8rem;">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                    </select>
                 </div>
-                {{end}} {{end}}
-            </ul>
 
-            <footer>
-                <form hx-post="/todos" 
-                    hx-target="#todo-list" 
-                    hx-swap="innerHTML" 
-                    hx-on::after-request="if(event.detail.successful) this.reset()"
-                    style="display: flex; gap: 10px; margin-bottom: 0;"> 
-                    
-                    <input type="text" name="task" placeholder="Add a new task..." required>
-                    <button type="submit">Add</button>
-                </form>
-                
-                <div style="display: flex; justify-content: space-between; margin-top: 25px; align-items: center;">
-                    <a href="/logout" class="secondary" style="font-size: 0.8rem;">Logout</a>
-                    
-                    <form hx-post="/todos/clear" 
-                          hx-target="#todo-list" 
-                          hx-swap="innerHTML" 
-                          hx-confirm="[WARNING] Are you sure to clear all?"
-                          style="margin: 0;">
-                         <button type="submit" class="outline contrast" 
-                                 style="border: none; font-size: 0.8rem; padding: 0;"
-                                 hx-confirm="Clear everything?">
-                            Clear All
-                         </button>
+                <ul class="todo-list" id="todo-list">
+                    {{block "task-list" .}}
+                        {{range .Tasks}}
+                        <li class="todo-item" style="justify-content: space-between; width: 100%;">
+                            <div hx-get="/todos/toggle?id={{.ID}}" hx-target="#todo-list" style="cursor: pointer; flex-grow: 1;">
+                                {{if .IsDone}}<ins>✓ {{.Title}}</ins>{{else}}<span>○ {{.Title}}</span>{{end}}
+                                <br>
+                                <small style="opacity: 0.5;">
+                                    Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}
+                                </small>
+                            </div>
+                            <a hx-delete="/todos/delete?id={{.ID}}" 
+                            hx-target="closest li" 
+                            hx-swap="outerHTML swap:300ms" 
+                            hx-confirm="Delete?" 
+                            style="color: #ff3e3e; font-size: 1.5rem; font-weight: bold; text-decoration: none; padding-left: 15px; line-height: 1;">
+                            &times;
+                            </a>
+                        </li>
+                        {{else}}
+                            <div class="empty-state"><p>✨ All caught up!</p></div>
+                        {{end}}
+                    {{end}}
+                </ul>
+
+                <footer>
+                    <form hx-post="/todos" 
+                        hx-target="#todo-list" 
+                        hx-on::after-request="this.reset()"
+                        style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 0;"> 
+                        
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" 
+                                name="task" 
+                                placeholder="What needs to be done?" 
+                                required 
+                                style="flex: 3; margin-bottom: 0;">
+                            
+                            <select name="worker_email" 
+                                    style="flex: 1; margin-bottom: 0; font-size: 0.8rem; height: 100%;">
+                                <option value="{{.Email}}">Assign to: Me</option>
+                                {{range .MyWorkers}}
+                                    <option value="{{.}}">Assign to: {{.}}</option>
+                                {{end}}
+                            </select>
+                        </div>
+
+                        <button type="submit" style="margin-bottom: 0;">Create Task</button>
                     </form>
+                </footer>
+            </article>
+        </section>
+
+        <aside>
+            <article>
+                <header><strong>👥 Network</strong></header>
+                
+                <div id="pending-invites">
+                    {{block "pending-invites" .}}
+                        <h6>Invites</h6>
+                        {{range .PendingInvites}}
+                            <div style="border: 1px solid var(--muted-border-color); padding: 5px; margin-bottom: 5px; font-size: 0.8rem;">
+                                <span>{{.ManagerEmail}}</span>
+                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <button class="outline" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites" style="padding: 2px 5px; font-size: 0.7rem;">Accept</button>
+                                    <button class="outline contrast" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites" style="padding: 2px 5px; font-size: 0.7rem;">Reject</button>
+                                </div>
+                            </div>
+                        {{else}}
+                            <small>No pending requests.</small>
+                        {{end}}
+                    {{end}}
                 </div>
-            </footer>
-        </article>
-    </main>
+
+                <hr>
+
+                <h6>Invite Worker</h6>
+                <form hx-post="/workers/invite" hx-on::after-request="this.reset()">
+                    <input type="email" name="worker_email" placeholder="Email..." required style="font-size: 0.8rem;">
+                    <button type="submit" class="secondary" style="font-size: 0.8rem;">Send Invite</button>
+                </form>
+            </article>
+            
+            <a href="/logout" class="secondary" style="font-size: 0.8rem;">Logout</a>
+        </aside>
+
+    </div>
+</main>
 </body>
 </html>

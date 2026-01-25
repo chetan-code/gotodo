@@ -76,6 +76,8 @@ func routing(mux *http.ServeMux, h *handler.TodoHandler) {
 	mux.HandleFunc("/todos/clear", handler.AuthMiddleware(h.ClearHandler))
 	mux.HandleFunc("/todos/toggle", handler.AuthMiddleware(h.ToggleHandler))
 	mux.HandleFunc("/todos/delete", handler.AuthMiddleware(h.DeleteHandler))
+	mux.HandleFunc("/workers/invite", handler.AuthMiddleware(h.InviteHandler))
+	mux.HandleFunc("/workers/respond", handler.AuthMiddleware(h.RespondInviteHandler))
 
 }
 

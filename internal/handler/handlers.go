@@ -47,6 +47,31 @@ func (h *TodoHandler) GetEmailFromContext(r *http.Request) (email string, err er
 	return email, nil
 }
 
+func (h *TodoHandler) InviteHandler(w http.ResponseWriter, r *http.Request) {
+	managerEmail, err := h.GetEmailFromContext(r)
+	workerEmail := r.FormValue("worker_email")
+	if err != nil {
+		HomeRedirect(w, r)
+		return
+	}
+	if workerEmail != "" {
+		h.repo.SendInvite(managerEmail, workerEmail)
+	}
+	// HTMX Response: Just clear the input and maybe show a "Sent!" toast
+	// For now, we just return an empty string so the form resets if you use hx-on
+	w.Write([]byte("Invite Sent!"))
+}
+
+func (h *TodoHandler) RespondInviteHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	action := r.URL.Query().Get("action") //accepted or rejected
+	id, _ := strconv.Atoi(idStr)
+
+	h.repo.RespondToInvite(id, action)
+	// HTMX Response: Remove the request card from the UI
+	w.Write([]byte(""))
+}
+
 func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 	email, err := h.GetEmailFromContext(r)
 	if err != nil {
@@ -60,6 +85,10 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		task := r.FormValue("task")
+		workerEmail := r.FormValue("worker_email")
+		if workerEmail == "" {
+			workerEmail = email
+		}
 		if task == "" {
 			slog.Error("empty_task",
 				"method", r.Method,
@@ -68,7 +97,7 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 				"email", email)
 			return
 		}
-		h.repo.AddTask(email, task)
+		h.repo.AddTask(email, task, workerEmail)
 
 		//check if we have htmx request
 		if r.Header.Get("HX-Request") == "true" {
@@ -76,9 +105,11 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 			tasks, _ := h.repo.FetchTasks(email, search, status)
 			stats, _ := h.repo.GetStats(email)
 			data := struct {
+				Email string
 				Tasks []models.Task
 				Stats repository.TodoStats
 			}{
+				Email: email,
 				Tasks: tasks,
 				Stats: stats,
 			}
@@ -101,26 +132,32 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		tasks, _ := h.repo.FetchTasks(email, search, status)
 		stats, _ := h.repo.GetStats(email)
-		//check if we have htmx request - and update the part
-		if r.Header.Get("HX-Request") == "true" {
-			//only update the part and return no need to redirect
-			tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-			//we yse "task-list" name we used in html {{block}}
-			tmpl.ExecuteTemplate(w, "task-list", struct{ Tasks []models.Task }{Tasks: tasks})
-			return
-		}
+		assignedTask, _ := h.repo.FetchAssignedToMe(email)
+		pendingInvites, _ := h.repo.FetchPendingInvites(email)
+		myWorkers, _ := h.repo.FetchMyWorkers(email)
 		//render full page
 		//data to send to html
 		data := struct {
-			Email string
-			Tasks []models.Task
-			Stats repository.TodoStats
+			Email          string
+			Tasks          []models.Task
+			Stats          repository.TodoStats
+			AssignedTasks  []models.Task
+			PendingInvites []models.Relationship
+			MyWorkers      []string
 		}{
-			Email: email,
-			Tasks: tasks,
-			Stats: stats,
+			Email:          email,
+			Tasks:          tasks,
+			Stats:          stats,
+			AssignedTasks:  assignedTask,
+			PendingInvites: pendingInvites,
+			MyWorkers:      myWorkers,
 		}
-
+		// Single HTMX check
+		if r.Header.Get("HX-Request") == "true" {
+			tmpl := template.Must(template.ParseFiles("templates/todos.html"))
+			tmpl.ExecuteTemplate(w, "task-list", data)
+			return
+		}
 		//laod and render the template :
 		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
 		tmpl.Execute(w, data)
@@ -157,12 +194,17 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 		//only update the part and return no need to redirect
 		tasks, _ := h.repo.FetchTasks(email, "", "")
 		stats, _ := h.repo.GetStats(email)
+		assignedTasks, _ := h.repo.FetchAssignedToMe(email)
 		data := struct {
-			Tasks []models.Task
-			Stats repository.TodoStats
+			Email         string
+			Tasks         []models.Task
+			Stats         repository.TodoStats
+			AssignedTasks []models.Task
 		}{
-			Tasks: tasks,
-			Stats: stats,
+			Email:         email,
+			Tasks:         tasks,
+			Stats:         stats,
+			AssignedTasks: assignedTasks,
 		}
 		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
 		//we yse "task-list" name we used in html {{block}}
@@ -173,6 +215,11 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">`)
 		tmpl.ExecuteTemplate(w, "stats-container", data)
 		fmt.Fprint(w, `</div>`)
+
+		// This ensures the checkbox update reflects in the Inbox too!
+		fmt.Fprint(w, `<ul id="inbox-list" hx-swap-oob="true" class="todo-list">`)
+		tmpl.ExecuteTemplate(w, "inbox-list", data)
+		fmt.Fprint(w, `</ul>`)
 		return
 	}
 
