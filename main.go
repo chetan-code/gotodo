@@ -19,10 +19,11 @@ import (
 
 func loadEnvVar() {
 	//load env variables
+	//since no env file in production - this can fail with errors
 	err := godotenv.Load()
 	if err != nil {
 		slog.Error("environment_var_load_failure", "error", err)
-		os.Exit(1)
+		//os.Exit(1)
 	}
 }
 
