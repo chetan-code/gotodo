@@ -7,29 +7,18 @@ import (
 	"os"
 	"time"
 
+	"github.com/chetan-code/gotodo/internal/config"
 	"github.com/chetan-code/gotodo/internal/handler"
 	"github.com/chetan-code/gotodo/internal/repository"
 	"github.com/gorilla/sessions"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 )
 
-func loadEnvVar() {
-	//load env variables
-	//since no env file in production - this can fail with errors
-	err := godotenv.Load()
-	if err != nil {
-		slog.Error("environment_var_load_failure", "error", err)
-		//os.Exit(1)
-	}
-}
-
-func initDB() *sql.DB {
+func initDB(dburl string) *sql.DB {
 	// Connection string matches the docker-compose environment variables
-	dburl := os.Getenv("DB_URL")
 	db, err := sql.Open("pgx", dburl)
 	if err != nil {
 		slog.Error("database_intialization_failed", "error", err)
@@ -63,22 +52,22 @@ func loggerMW(next http.Handler) http.Handler {
 	})
 }
 
-func routing(mux *http.ServeMux, h *handler.TodoHandler) {
+func routing(mux *http.ServeMux, todoHandler *handler.TodoHandler, authHandler *handler.AuthHandler) {
 	//url path router to a fuction via default mux
-	mux.HandleFunc("/login", h.LoginHandler)
-	mux.HandleFunc("/auth/google", handler.BeginAuth)
-	mux.HandleFunc("/auth/google/callback", handler.AuthCallbackHandler)
-	mux.HandleFunc("/logout", handler.LogoutHandler)
+	mux.HandleFunc("/login", todoHandler.LoginHandler)
+	mux.HandleFunc("/auth/google", authHandler.BeginAuth)
+	mux.HandleFunc("/auth/google/callback", authHandler.AuthCallbackHandler)
+	mux.HandleFunc("/logout", authHandler.LogoutHandler)
 	//redirect any root to login
 	mux.HandleFunc("/", handler.HomeRedirect)
 
 	//we will protect them - only user with valid auth and jwt can access this routes
-	mux.HandleFunc("/todos", handler.AuthMiddleware(h.TodoHandler))
-	mux.HandleFunc("/todos/clear", handler.AuthMiddleware(h.ClearHandler))
-	mux.HandleFunc("/todos/toggle", handler.AuthMiddleware(h.ToggleHandler))
-	mux.HandleFunc("/todos/delete", handler.AuthMiddleware(h.DeleteHandler))
-	mux.HandleFunc("/workers/invite", handler.AuthMiddleware(h.InviteHandler))
-	mux.HandleFunc("/workers/respond", handler.AuthMiddleware(h.RespondInviteHandler))
+	mux.HandleFunc("/todos", authHandler.AuthMiddleware(todoHandler.TodoHandler))
+	mux.HandleFunc("/todos/clear", authHandler.AuthMiddleware(todoHandler.ClearHandler))
+	mux.HandleFunc("/todos/toggle", authHandler.AuthMiddleware(todoHandler.ToggleHandler))
+	mux.HandleFunc("/todos/delete", authHandler.AuthMiddleware(todoHandler.DeleteHandler))
+	mux.HandleFunc("/workers/invite", authHandler.AuthMiddleware(todoHandler.InviteHandler))
+	mux.HandleFunc("/workers/respond", authHandler.AuthMiddleware(todoHandler.RespondInviteHandler))
 
 }
 
@@ -96,19 +85,16 @@ and when user complete login it will compare it to make sure login
 process was completed from this app only \
 Protection from cross site request forgery
 */
-func setupGothic() {
+func setupGothic(c *config.Config) {
 	//GOTH google setup
-	key := os.Getenv("GOOGLE_CLIENT_ID")
-	secret := os.Getenv("GOOGLE_CLIENT_SECRET")
-	callback := os.Getenv("GOOGLE_CALLBACK_URL")
 	goth.UseProviders(
-		google.New(key, secret, callback, "email", "profile"),
+		google.New(c.GoogleClientID, c.GoogleClientSecret, c.GoogleCallbackUrl, "email", "profile"),
 	)
 
 	//gothic jwt setup for cookie (cross site req forgery avoidance)
-	keyJWT := os.Getenv("JWT_SECRET")
+	keyJWT := c.JwtSecret
 	maxAge := 86400 * 30 //30 days
-	isProd := false      //set to true for https
+	isProd := c.IsProd() //set to true for https
 
 	store := sessions.NewCookieStore([]byte(keyJWT))
 	store.MaxAge(maxAge)
@@ -133,12 +119,16 @@ func setupSlog() {
 
 func main() {
 
-	//structure logging
+	config, err := config.Load()
+	if err != nil {
+		slog.Error("config_setup_failed", "error", err)
+		os.Exit(1)
+	}
+
+	//structured logging
 	setupSlog()
 
-	loadEnvVar()
-
-	db := initDB()
+	db := initDB(config.DbUrl)
 	defer db.Close()
 
 	repo, err := repository.NewTodoRepo(db)
@@ -146,17 +136,18 @@ func main() {
 		slog.Error("repository_creation_failed", "error", err)
 		os.Exit(1)
 	}
-	h := handler.NewTodoHandler(repo)
+	todoHandler := handler.NewTodoHandler(repo)
+	authHandler := handler.NewAuthHandler(config)
 
 	//athentication
-	setupGothic()
+	setupGothic(config)
 
 	//routing
 	mux := http.NewServeMux()
-	routing(mux, h)
+	routing(mux, todoHandler, authHandler)
 
 	//middleweare
 	wrappedMux := loggerMW(mux)
 
-	startServer(":8080", wrappedMux)
+	startServer(config.Port, wrappedMux)
 }
