@@ -12,11 +12,13 @@ import (
 )
 
 type TodoHandler struct {
-	repo *repository.TodoRepo
+	repo  *repository.TodoRepo
+	templ *template.Template //html template to send to the client
 }
 
 func NewTodoHandler(r *repository.TodoRepo) *TodoHandler {
-	return &TodoHandler{repo: r}
+	parsedTemplates := template.Must(template.ParseFiles("templates/login.html", "templates/todos.html"))
+	return &TodoHandler{repo: r, templ: parsedTemplates}
 }
 
 func HomeRedirect(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +28,7 @@ func HomeRedirect(w http.ResponseWriter, r *http.Request) {
 func (h *TodoHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	//show login page
 	if r.Method == http.MethodGet {
-		tmpl := template.Must(template.ParseFiles("templates/login.html"))
-		tmpl.Execute(w, nil)
+		h.templ.ExecuteTemplate(w, "login.html", nil)
 		return
 	}
 }
@@ -113,14 +114,12 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 				Tasks: tasks,
 				Stats: stats,
 			}
-			tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-			//we yse "task-list" name we used in html {{block}}
-			tmpl.ExecuteTemplate(w, "task-list", data)
+			h.templ.ExecuteTemplate(w, "task-list", data)
 
 			//Append the Stats block with the hx-swap-oob attribute
 			//find element with "stats-container" id and replace it
 			fmt.Fprint(w, `<div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">`)
-			tmpl.ExecuteTemplate(w, "stats-container", data)
+			h.templ.ExecuteTemplate(w, "stats-container", data)
 			fmt.Fprint(w, `</div>`)
 			return
 		}
@@ -154,13 +153,10 @@ func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// Single HTMX check
 		if r.Header.Get("HX-Request") == "true" {
-			tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-			tmpl.ExecuteTemplate(w, "task-list", data)
+			h.templ.ExecuteTemplate(w, "task-list", data)
 			return
 		}
-		//laod and render the template :
-		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-		tmpl.Execute(w, data)
+		h.templ.ExecuteTemplate(w, "todos.html", data)
 	}
 
 }
@@ -206,19 +202,17 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 			Stats:         stats,
 			AssignedTasks: assignedTasks,
 		}
-		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-		//we yse "task-list" name we used in html {{block}}
-		tmpl.ExecuteTemplate(w, "task-list", data)
+		h.templ.ExecuteTemplate(w, "task-list", data)
 
 		//Append the Stats block with the hx-swap-oob attribute
 		//find element with "stats-container" id and replace it
 		fmt.Fprint(w, `<div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">`)
-		tmpl.ExecuteTemplate(w, "stats-container", data)
+		h.templ.ExecuteTemplate(w, "stats-container", data)
 		fmt.Fprint(w, `</div>`)
 
 		// This ensures the checkbox update reflects in the Inbox too!
 		fmt.Fprint(w, `<ul id="inbox-list" hx-swap-oob="true" class="todo-list">`)
-		tmpl.ExecuteTemplate(w, "inbox-list", data)
+		h.templ.ExecuteTemplate(w, "inbox-list", data)
 		fmt.Fprint(w, `</ul>`)
 		return
 	}
@@ -251,11 +245,10 @@ func (h *TodoHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		}{
 			Stats: stats,
 		}
-		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
 		//Append the Stats block with the hx-swap-oob attribute
 		//find element with "stats-container" id and replace it
 		fmt.Fprint(w, `<div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">`)
-		tmpl.ExecuteTemplate(w, "stats-container", data)
+		h.templ.ExecuteTemplate(w, "stats-container", data)
 		fmt.Fprint(w, `</div>`)
 		return
 	}
@@ -291,13 +284,12 @@ func (h *TodoHandler) ClearHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// Since we cleared everything, tasks will be empty
 		// Re-render the "task-list" block so the user sees "✨ All caught up!"
-		tmpl := template.Must(template.ParseFiles("templates/todos.html"))
-		tmpl.ExecuteTemplate(w, "task-list", struct{ Tasks []models.Task }{Tasks: nil})
+		h.templ.ExecuteTemplate(w, "task-list", struct{ Tasks []models.Task }{Tasks: nil})
 
 		//Append the Stats block with the hx-swap-oob attribute
 		//find element with "stats-container" id and replace it
 		fmt.Fprint(w, `<div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.9rem;">`)
-		tmpl.ExecuteTemplate(w, "stats-container", data)
+		h.templ.ExecuteTemplate(w, "stats-container", data)
 		fmt.Fprint(w, `</div>`)
 		return
 	}

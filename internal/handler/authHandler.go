@@ -75,8 +75,8 @@ func (h *AuthHandler) AuthCallbackHandler(w http.ResponseWriter, r *http.Request
 		Name:     "session_token",
 		Value:    token,
 		Path:     "/",
-		HttpOnly: true, //not visible to JS [IMP for security]
-		//Secure: true,//enable it for HTTPS in production
+		HttpOnly: true,              //not visible to JS [IMP for security]
+		Secure:   h.config.IsProd(), //enable it for HTTPS in production
 	})
 
 	http.Redirect(w, r, "/todos", http.StatusSeeOther)
@@ -89,7 +89,8 @@ func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
-		HttpOnly: true, //js cant touch it
+		HttpOnly: true,              //js cant touch it
+		Secure:   h.config.IsProd(), //enable it for HTTPS in production
 	})
 
 	//clear gothic session
