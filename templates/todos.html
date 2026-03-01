@@ -4,196 +4,194 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Go Todo App</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
     <style>
-        .container { max-width: 1800px; margin-top: 20px; }
+        /* Essential CSS for the Tab functionality */
+        .tab-panel { display: none; }
         
-        /* Clean Bullet Point Styling */
-        .todo-list {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 2rem;
-
-            /* The Scroll Magic */
-            max-height: 400px;    /* Change this to your preferred height */
-            overflow-y: auto;     /* Adds scrollbar only when needed */
-            overflow-x: hidden;   /* Prevents horizontal shaking */
-            
-            /* Optional: Custom scrollbar for a cleaner look */
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary) transparent;
-        }
-        
-        /* For Chrome/Safari/Edge browsers */
-        .todo-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        .todo-list::-webkit-scrollbar-thumb {
-            background-color: var(--primary);
-            border-radius: 10px;
-        }
-        .todo-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--muted-border-color);
+        #tab-board:checked ~ [data-sidebar-layout] #panel-board,
+        #tab-inbox:checked ~ [data-sidebar-layout] #panel-inbox,
+        #tab-network:checked ~ [data-sidebar-layout] #panel-network {
+            display: block;
         }
 
-
-        ins { 
-            color: var(--muted-color); 
-            text-decoration: line-through; 
-            opacity: 0.6;
+        /* Essential CSS to highlight the active tab */
+        #tab-board:checked ~ [data-sidebar-layout] label[for="tab-board"],
+        #tab-inbox:checked ~ [data-sidebar-layout] label[for="tab-inbox"],
+        #tab-network:checked ~ [data-sidebar-layout] label[for="tab-network"] {
+            font-weight: bold;
+            text-decoration: underline;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 20px;
-            color: var(--muted-color);
-        }
-
-        .todo-item.htmx-swapping { opacity: 0; transition: opacity 0.3s ease-out; }
+        /* Allow todo list to scroll if it gets too long */
+        .todo-list { max-height: 50vh; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
     </style>
 </head>
 <body>
-<main class="container" style="max-width: 1800px;">
-    <div class="grid">
+
+<input type="radio" id="tab-board" name="nav-tabs" checked hidden>
+<input type="radio" id="tab-inbox" name="nav-tabs" hidden>
+<input type="radio" id="tab-network" name="nav-tabs" hidden>
+
+<div data-sidebar-layout="always">
+    
+    <nav data-topnav>
+        <button data-sidebar-toggle class="outline small">☰</button>
+        <strong>GoTodo</strong>
+    </nav>
+
+    <aside data-sidebar>
+        <header>
+            <strong>🚀 GoTodo</strong>
+            <br>
+            <small>{{.Email}}</small>
+        </header>
         
-        <aside>
-            <article>
-                <header><strong>📥 Inbox</strong></header>
-                {{block "inbox-list" .}}
-                <ul class="todo-list" hx-swap-oob="true" id="inbox-list">
-                        {{range .AssignedTasks}}
-                            <li class="todo-item" style="flex-direction: column; align-items: flex-start; padding: 12px 0;">
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
-                                    <strong style="font-size: 0.9rem;">{{.Title}}</strong>
-                                    <input type="checkbox" hx-get="/todos/toggle?id={{.ID}}" hx-target="#inbox-list" {{if .IsDone}}checked{{end}}>
-                                </div>
-                                <small style="opacity: 0.6;">Assignee: {{.Email}}</small>
-                            </li>
-                        {{else}}
-                            <div class="empty-state">
-                                <p style="font-size: 0.8rem;">No tasks from others yet.</p>
-                            </div>
-                        {{end}}
-                </ul>
-                {{end}}
-            </article>
-        </aside>
+        <nav>
+            <ul>
+                <li><label for="tab-board" style="cursor: pointer; display: block;">📝 My Board</label></li>
+                <li><label for="tab-inbox" style="cursor: pointer; display: block;">📥 Inbox</label></li>
+                <li><label for="tab-network" style="cursor: pointer; display: block;">👥 Network</label></li>
+            </ul>
+        </nav>
 
-        <section>
-            <article>
-                <header>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong>📝 My Board</strong>
-                        <small>{{.Email}}</small>
-                    </div>
-                </header>
-                {{block "stats-container" .}}
-                <div id="stats-container" hx-swap-oob="true" style="display: flex; gap: 20px; margin-bottom: 1rem; font-size: 0.8rem;">
-                    <span>Total: <strong>{{.Stats.Total}}</strong></span>
-                    <span style="color: var(--primary);">Pending: <strong>{{.Stats.Pending}}</strong></span>
-                    <span style="color: var(--secondary);">Done: <strong>{{.Stats.Completed}}</strong></span>
-                </div>
-                {{end}}
-                <div style="margin-bottom: 1rem; display: flex; gap: 5px;">
-                    <input type="search" name="search" placeholder="Search..." hx-get="/todos" hx-target="#todo-list" hx-trigger="keyup changed delay:500ms" style="font-size: 0.8rem;">
-                    <select name="status" hx-get="/todos" hx-target="#todo-list" style="width: 120px; font-size: 0.8rem;">
-                        <option value="">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
+        <footer>
+            <a href="/logout" style="text-decoration: none;">
+                <button data-variant="danger" class="outline" style="width: 100%;">🚪 Logout</button>
+            </a>
+        </footer>
+    </aside>
 
+    <main>
+        
+        <section id="panel-board" class="tab-panel">
+            <h2>📝 My Board</h2>
+            
+            {{block "stats-container" .}}
+            <div id="stats-container" hx-swap-oob="true" style="margin-bottom: 2rem;">
+                <span class="badge">Total: {{.Stats.Total}}</span>
+                <span class="badge warning">Pending: {{.Stats.Pending}}</span>
+                <span class="badge success">Done: {{.Stats.Completed}}</span>
+            </div>
+            {{end}}
+
+            <fieldset class="group" style="margin-bottom: 2rem;">
+                <input type="search" name="search" placeholder="Search tasks..." hx-get="/todos" hx-target="#todo-list" hx-trigger="keyup changed delay:500ms" style="flex: 1;">
+                
+                <select name="status" hx-get="/todos" hx-target="#todo-list" style="flex: none; width: 20%; min-width: 120px;">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </fieldset>
+
+            <article class="card">
                 <ul class="todo-list" id="todo-list">
                     {{block "task-list" .}}
                         {{range .Tasks}}
-                        <li class="todo-item" style="justify-content: space-between; width: 100%;">
+                        <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border);">
                             <div hx-get="/todos/toggle?id={{.ID}}" hx-target="#todo-list" style="cursor: pointer; flex-grow: 1;">
-                                {{if .IsDone}}<ins>✓ {{.Title}}</ins>{{else}}<span>○ {{.Title}}</span>{{end}}
+                                {{if .IsDone}}
+                                    <s>✓ {{.Title}}</s>
+                                {{else}}
+                                    <strong>○ {{.Title}}</strong>
+                                {{end}}
                                 <br>
-                                <small style="opacity: 0.5;">
-                                    Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}
-                                </small>
+                                <small>Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}</small>
                             </div>
-                            <a hx-delete="/todos/delete?id={{.ID}}" 
-                            hx-target="closest li" 
-                            hx-swap="outerHTML swap:300ms" 
-                            hx-confirm="Delete?" 
-                            style="color: #ff3e3e; font-size: 1.5rem; font-weight: bold; text-decoration: none; padding-left: 15px; line-height: 1;">
-                            &times;
-                            </a>
+                            <button class="outline small" data-variant="danger" hx-delete="/todos/delete?id={{.ID}}" 
+                               hx-target="closest li" 
+                               hx-swap="outerHTML swap:300ms" 
+                               hx-confirm="Delete this task?">&times;</button>
                         </li>
                         {{else}}
-                            <div class="empty-state"><p>✨ All caught up!</p></div>
+                            <div style="text-align: center; padding: 2rem;">✨ All caught up! Time for a coffee.</div>
                         {{end}}
                     {{end}}
                 </ul>
+            </article>
 
-                <footer>
-                    <form hx-post="/todos" 
-                        hx-target="#todo-list" 
-                        hx-on::after-request="this.reset()"
-                        style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 0;"> 
+            <article class="card" style="margin-top: 2rem;">
+                <form hx-post="/todos" hx-target="#todo-list" hx-on::after-request="this.reset()"> 
+                    <fieldset class="group">
+                        <input type="text" name="task" placeholder="What needs to be done?" required style="flex: 1;">
                         
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" 
-                                name="task" 
-                                placeholder="What needs to be done?" 
-                                required 
-                                style="flex: 3; margin-bottom: 0;">
-                            
-                            <select name="worker_email" 
-                                    style="flex: 1; margin-bottom: 0; font-size: 0.8rem; height: 100%;">
-                                <option value="{{.Email}}">Assign to: Me</option>
-                                {{range .MyWorkers}}
-                                    <option value="{{.}}">Assign to: {{.}}</option>
-                                {{end}}
-                            </select>
-                        </div>
-
-                        <button type="submit" style="margin-bottom: 0;">Create Task</button>
-                    </form>
-                </footer>
+                        <select name="worker_email" style="flex: none; width: 20%; min-width: 120px;">
+                            <option value="{{.Email}}">Assign: Me</option>
+                            {{range .MyWorkers}}
+                                <option value="{{.}}">Assign: {{.}}</option>
+                            {{end}}
+                        </select>
+                        
+                        <button type="submit" style="flex: none;">Create Task</button>
+                    </fieldset>
+                </form>
             </article>
         </section>
 
-        <aside>
-            <article>
-                <header><strong>👥 Network</strong></header>
-                
+        <section id="panel-inbox" class="tab-panel">
+            <h2>📥 Inbox</h2>
+            <p>Tasks assigned to you by others.</p>
+            
+            <article class="card">
+                {{block "inbox-list" .}}
+                <ul class="todo-list" hx-swap-oob="true" id="inbox-list">
+                        {{range .AssignedTasks}}
+                            <li style="padding: 1rem 0; border-bottom: 1px solid var(--border);">
+                                <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <span>
+                                        <input type="checkbox" hx-get="/todos/toggle?id={{.ID}}" hx-target="#inbox-list" {{if .IsDone}}checked{{end}}>
+                                        {{.Title}}
+                                    </span>
+                                </label>
+                                <small style="display: block; margin-top: 0.5rem;">Assigned by: {{.Email}}</small>
+                            </li>
+                        {{else}}
+                            <div style="text-align: center; padding: 2rem;">No tasks from others yet.</div>
+                        {{end}}
+                </ul>
+                {{end}}
+            </article>
+        </section>
+
+        <section id="panel-network" class="tab-panel">
+            <h2>👥 Network</h2>
+            <p>Manage your workers and invites.</p>
+            
+            <article class="card" style="margin-bottom: 2rem;">
                 <div id="pending-invites">
                     {{block "pending-invites" .}}
-                        <h6>Invites</h6>
+                        <h3>Pending Invites</h3>
                         {{range .PendingInvites}}
-                            <div style="border: 1px solid var(--muted-border-color); padding: 5px; margin-bottom: 5px; font-size: 0.8rem;">
-                                <span>{{.ManagerEmail}}</span>
-                                <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                    <button class="outline" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites" style="padding: 2px 5px; font-size: 0.7rem;">Accept</button>
-                                    <button class="outline contrast" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites" style="padding: 2px 5px; font-size: 0.7rem;">Reject</button>
-                                </div>
+                            <div role="alert">
+                                <strong>{{.ManagerEmail}}</strong> wants you to work for them.
+                                <menu class="buttons" style="margin-top: 1rem;">
+                                    <li><button data-variant="success" class="small" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites">Accept</button></li>
+                                    <li><button data-variant="danger" class="small" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites">Reject</button></li>
+                                </menu>
                             </div>
                         {{else}}
-                            <small>No pending requests.</small>
+                            <div>No pending requests.</div>
                         {{end}}
                     {{end}}
                 </div>
+            </article>
 
-                <hr>
-
-                <h6>Invite Worker</h6>
+            <article class="card">
+                <h3>Invite Worker</h3>
                 <form hx-post="/workers/invite" hx-on::after-request="this.reset()">
-                    <input type="email" name="worker_email" placeholder="Email..." required style="font-size: 0.8rem;">
-                    <button type="submit" class="secondary" style="font-size: 0.8rem;">Send Invite</button>
+                    <fieldset class="group">
+                        <input type="email" name="worker_email" placeholder="Worker's email address..." required>
+                        <button type="submit">Send Invite</button>
+                    </fieldset>
                 </form>
             </article>
-            
-            <a href="/logout" class="secondary" style="font-size: 0.8rem;">Logout</a>
-        </aside>
+        </section>
 
-    </div>
-</main>
+    </main>
+</div>
 </body>
 </html>
