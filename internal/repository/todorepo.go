@@ -23,6 +23,7 @@ func NewTodoRepo(db *sql.DB) (*TodoRepo, error) {
 	return repo, nil
 }
 
+// Fetch tasks from the database using filters (if provided)
 func (r *TodoRepo) FetchTasks(email string, search string, status string) ([]models.Task, error) {
 	//base query
 	query := "SELECT id, email, title, is_done, worker_email FROM todos WHERE email = $1"
@@ -158,6 +159,7 @@ func (r *TodoRepo) RemoveAllTask(email string) error {
 	return err
 }
 
+// Get statstics of tasks like pending, completed and total count
 func (r *TodoRepo) GetStats(email string) (TodoStats, error) {
 	query := `
 			SELECT
