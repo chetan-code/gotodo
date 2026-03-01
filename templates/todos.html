@@ -180,6 +180,25 @@
                 </div>
             </article>
 
+            <article class="card" style="margin-bottom: 2rem;">
+                <div id="sent-invites">
+                    {{block "sent-invites" .}}
+                        <h3>Sent Invites</h3>
+                        {{range .SentInvites}}
+                            <div role="alert">
+                                You have sent invite request to <strong>{{.WorkerEmail}}</strong> 
+                                <menu class="buttons" style="margin-top: 1rem;">
+                                    <!-- <li><button data-variant="success" class="small" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites">Accept</button></li> -->
+                                    <!-- <li><button data-variant="danger" class="small" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites">Reject</button></li> -->
+                                </menu>
+                            </div>
+                        {{else}}
+                            <div>No sent invite requests.</div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </article>
+
             <article class="card">
                 <h3>Invite Worker</h3>
                 <form hx-post="/workers/invite" hx-on::after-request="this.reset()">

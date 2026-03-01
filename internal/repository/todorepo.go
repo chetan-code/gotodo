@@ -186,11 +186,13 @@ func (r *TodoRepo) SendInvite(managerEmail string, workerEmail string) error {
 		return fmt.Errorf("cannot invite self")
 	}
 
-	//insert new only if not exists
+	//insert new only if not exists. If it exist and the status is rejected set it to pending. Else do nothing.
 	query := `
 			INSERT INTO relationships (manager_email, worker_email, status)
 			VALUES ($1, $2, 'pending')
-			ON CONFLICT (manager_email, worker_email) DO NOTHING`
+			ON CONFLICT (manager_email, worker_email)
+			DO UPDATE SET status = 'pending'
+			WHERE relationships.status = 'rejected'`
 	_, err := r.db.Exec(query, managerEmail, workerEmail)
 	if err != nil {
 		slog.Error("database_query_failed",
@@ -205,6 +207,30 @@ func (r *TodoRepo) SendInvite(managerEmail string, workerEmail string) error {
 		"op", "invite sent to worker",
 		"worker_email", workerEmail)
 	return nil
+}
+
+func (r *TodoRepo) FetchSentInvites(managerEmail string) ([]models.Relationship, error) {
+	query := `
+			  SELECT id, manager_email, worker_email, created_at FROM relationships
+			  WHERE manager_email = $1 AND status = 'pending'
+			  ORDER BY created_at DESC`
+	rows, err := r.db.Query(query, managerEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sentInvites []models.Relationship
+	for rows.Next() {
+		var rel models.Relationship
+		err = rows.Scan(&rel.ID, &rel.ManagerEmail, &rel.WorkerEmail, &rel.CreatedAt)
+		if err == nil {
+			sentInvites = append(sentInvites, rel)
+		}
+	}
+	slog.Debug("database_query_success",
+		"op", "select sent invites by manager",
+		"worker_email", managerEmail)
+	return sentInvites, nil
 }
 
 func (r *TodoRepo) FetchPendingInvites(workerEmail string) ([]models.Relationship, error) {

@@ -22,6 +22,7 @@ type TodoPageData struct {
 	Stats          repository.TodoStats
 	AssignedTasks  []models.Task
 	PendingInvites []models.Relationship
+	SentInvites    []models.Relationship
 	MyWorkers      []string
 }
 
@@ -207,6 +208,12 @@ func (h *TodoHandler) FetchAllTasks(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	sentInvites, err := h.repo.FetchSentInvites(email)
+	if err != nil {
+		slog.Error("failed_fetch_sent_invites_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	myWorkers, err := h.repo.FetchMyWorkers(email)
 	if err != nil {
 		slog.Error("failed_fetch_my_workers_from_db", "error", err)
@@ -221,6 +228,7 @@ func (h *TodoHandler) FetchAllTasks(w http.ResponseWriter, r *http.Request) {
 		Stats:          stats,
 		AssignedTasks:  assignedTask,
 		PendingInvites: pendingInvites,
+		SentInvites:    sentInvites,
 		MyWorkers:      myWorkers,
 	}
 	// Single HTMX check
