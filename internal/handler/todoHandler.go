@@ -16,6 +16,15 @@ type TodoHandler struct {
 	templ *template.Template //html template to send to the client
 }
 
+type TodoPageData struct {
+	Email          string
+	Tasks          []models.Task
+	Stats          repository.TodoStats
+	AssignedTasks  []models.Task
+	PendingInvites []models.Relationship
+	MyWorkers      []string
+}
+
 func NewTodoHandler(r *repository.TodoRepo) *TodoHandler {
 	parsedTemplates := template.Must(template.ParseFiles("templates/login.html", "templates/todos.html"))
 	return &TodoHandler{repo: r, templ: parsedTemplates}
@@ -86,8 +95,12 @@ func (h *TodoHandler) InviteHandler(w http.ResponseWriter, r *http.Request) {
 func (h *TodoHandler) RespondInviteHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	action := r.URL.Query().Get("action") //accepted or rejected
-	id, _ := strconv.Atoi(idStr)
-
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		slog.Error("failed_strconv_atoi", "error", err)
+		http.Error(w, "Failed strconv", http.StatusInternalServerError)
+		return
+	}
 	h.repo.RespondToInvite(id, action)
 	// HTMX Response: Remove the request card from the UI
 	w.Write([]byte(""))
@@ -133,13 +146,19 @@ func (h *TodoHandler) PostNewTask(w http.ResponseWriter, r *http.Request) {
 	//check if we have htmx request
 	if isHTMX(r) {
 		//only update the part and return no need to redirect
-		tasks, _ := h.repo.FetchTasks(email, search, status)
-		stats, _ := h.repo.GetStats(email)
-		data := struct {
-			Email string
-			Tasks []models.Task
-			Stats repository.TodoStats
-		}{
+		tasks, err := h.repo.FetchTasks(email, search, status)
+		if err != nil {
+			slog.Error("failed_task_fetch_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		stats, err := h.repo.GetStats(email)
+		if err != nil {
+			slog.Error("failed_get_stats_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := TodoPageData{
 			Email: email,
 			Tasks: tasks,
 			Stats: stats,
@@ -164,21 +183,39 @@ func (h *TodoHandler) FetchAllTasks(w http.ResponseWriter, r *http.Request) {
 		HomeRedirect(w, r)
 		return
 	}
-	tasks, _ := h.repo.FetchTasks(email, search, status)
-	stats, _ := h.repo.GetStats(email)
-	assignedTask, _ := h.repo.FetchAssignedToMe(email)
-	pendingInvites, _ := h.repo.FetchPendingInvites(email)
-	myWorkers, _ := h.repo.FetchMyWorkers(email)
+	tasks, err := h.repo.FetchTasks(email, search, status)
+	if err != nil {
+		slog.Error("failed_task_fetch_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	stats, err := h.repo.GetStats(email)
+	if err != nil {
+		slog.Error("failed_get_stats_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	assignedTask, err := h.repo.FetchAssignedToMe(email)
+	if err != nil {
+		slog.Error("failed_fetch_assigned_task_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	pendingInvites, err := h.repo.FetchPendingInvites(email)
+	if err != nil {
+		slog.Error("failed_fetch_pending_invites_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	myWorkers, err := h.repo.FetchMyWorkers(email)
+	if err != nil {
+		slog.Error("failed_fetch_my_workers_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	//render full page
 	//data to send to html
-	data := struct {
-		Email          string
-		Tasks          []models.Task
-		Stats          repository.TodoStats
-		AssignedTasks  []models.Task
-		PendingInvites []models.Relationship
-		MyWorkers      []string
-	}{
+	data := TodoPageData{
 		Email:          email,
 		Tasks:          tasks,
 		Stats:          stats,
@@ -205,8 +242,13 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if id != "" {
-		intid, _ := strconv.Atoi(id)
-		err := h.repo.ToggleTask(intid, email)
+		intid, err := strconv.Atoi(id)
+		if err != nil {
+			slog.Error("invalid_task_id", "error", err, "id", id)
+			http.Error(w, "Invalid ID provided", http.StatusBadRequest)
+			return
+		}
+		err = h.repo.ToggleTask(intid, email)
 		if err != nil {
 			http.Error(w, "Error toggling task!", http.StatusNotAcceptable)
 			return
@@ -223,15 +265,25 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 	//check if we have htmx request - then just update element avoid redirect
 	if isHTMX(r) {
 		//only update the part and return no need to redirect
-		tasks, _ := h.repo.FetchTasks(email, "", "")
-		stats, _ := h.repo.GetStats(email)
-		assignedTasks, _ := h.repo.FetchAssignedToMe(email)
-		data := struct {
-			Email         string
-			Tasks         []models.Task
-			Stats         repository.TodoStats
-			AssignedTasks []models.Task
-		}{
+		tasks, err := h.repo.FetchTasks(email, "", "")
+		if err != nil {
+			slog.Error("failed_fetch_assigned_task_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		stats, err := h.repo.GetStats(email)
+		if err != nil {
+			slog.Error("failed_get_stats_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		assignedTasks, err := h.repo.FetchAssignedToMe(email)
+		if err != nil {
+			slog.Error("failed_fetch_assigned_task_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := TodoPageData{
 			Email:         email,
 			Tasks:         tasks,
 			Stats:         stats,
@@ -266,10 +318,14 @@ func (h *TodoHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	//check if we have htmx request - then just update element avoid redirect
 	if isHTMX(r) {
-		stats, _ := h.repo.GetStats(email)
-		data := struct {
-			Stats repository.TodoStats
-		}{
+		stats, err := h.repo.GetStats(email)
+		if err != nil {
+			slog.Error("failed_get_stats_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := TodoPageData{
+			Email: email,
 			Stats: stats,
 		}
 
@@ -301,15 +357,20 @@ func (h *TodoHandler) ClearHandler(w http.ResponseWriter, r *http.Request) {
 
 	// CHECK FOR HTMX REQUEST
 	if isHTMX(r) {
-		stats, _ := h.repo.GetStats(email)
-		data := struct {
-			Stats repository.TodoStats
-		}{
+		stats, err := h.repo.GetStats(email)
+		if err != nil {
+			slog.Error("failed_get_stats_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := TodoPageData{
+			Email: email,
 			Stats: stats,
+			Tasks: nil,
 		}
 		// Since we cleared everything, tasks will be empty
 		// Re-render the "task-list" block so the user sees "✨ All caught up!"
-		h.renderHTMX(w, "task-list", struct{ Tasks []models.Task }{Tasks: nil})
+		h.renderHTMX(w, "task-list", data)
 		h.renderHTMX(w, "stats-container", data)
 		return
 	}
