@@ -162,19 +162,69 @@
             <p>Manage your workers and invites.</p>
             
             <article class="card" style="margin-bottom: 2rem;">
+            <div id="your-team">
+                {{block "your-team" .}}
+                    <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Your Team</h3>
+                    
+                    {{range .MyWorkers}}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; background: var(--surface);">
+                            
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.2rem; opacity: 0.8;">👤</span>
+                                <strong style="color: var(--text-main);">{{.}}</strong>
+                            </div>
+                            
+                            <button class="outline small" 
+                                    data-variant="danger" 
+                                    hx-delete="/workers/delete?worker_email={{.}}" 
+                                    hx-target="#your-team" 
+                                    hx-swap="innerHTML"
+                                    hx-confirm="Remove this worker from your team? They will no longer see your tasks.">
+                                Remove
+                            </button>
+                            
+                        </div>
+                    {{else}}
+                        <div class="empty-state" style="padding: 10px;">You haven't added anyone to your team yet.</div>
+                    {{end}}
+                {{end}}
+            </div>
+            </article>
+
+            <article class="card" style="margin-bottom: 2rem;">
                 <div id="pending-invites">
                     {{block "pending-invites" .}}
-                        <h3>Pending Invites</h3>
+                        <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Pending Invites</h3>
+                        
                         {{range .PendingInvites}}
-                            <div role="alert">
-                                <strong>{{.ManagerEmail}}</strong> wants you to work for them.
-                                <menu class="buttons" style="margin-top: 1rem;">
-                                    <li><button data-variant="success" class="small" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites">Accept</button></li>
-                                    <li><button data-variant="danger" class="small" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites">Reject</button></li>
-                                </menu>
+                            <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; background: var(--bg-color);">
+                                
+                                <span style="color: var(--text-main); font-size: 0.95rem;">
+                                    <span style="font-size: 1.2rem; margin-right: 5px;">👋</span>
+                                    <strong>{{.ManagerEmail}}</strong> wants you to work for them.
+                                </span>
+                                
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="small" 
+                                            data-variant="success" 
+                                            hx-get="/workers/respond?id={{.ID}}&action=accepted" 
+                                            hx-target="#pending-invites"
+                                            style="margin: 0; padding: 4px 16px;">
+                                        Accept
+                                    </button>
+                                    
+                                    <button class="outline small" 
+                                            data-variant="danger" 
+                                            hx-get="/workers/respond?id={{.ID}}&action=rejected" 
+                                            hx-target="#pending-invites"
+                                            style="margin: 0; padding: 4px 16px;">
+                                        Reject
+                                    </button>
+                                </div>
+                                
                             </div>
                         {{else}}
-                            <div>No pending requests.</div>
+                            <div class="empty-state" style="padding: 10px;">No pending requests.</div>
                         {{end}}
                     {{end}}
                 </div>
@@ -183,30 +233,65 @@
             <article class="card" style="margin-bottom: 2rem;">
                 <div id="sent-invites">
                     {{block "sent-invites" .}}
-                        <h3>Sent Invites</h3>
+                        <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Sent Invites</h3>
+                        
                         {{range .SentInvites}}
-                            <div role="alert">
-                                You have sent invite request to <strong>{{.WorkerEmail}}</strong> 
-                                <menu class="buttons" style="margin-top: 1rem;">
-                                    <!-- <li><button data-variant="success" class="small" hx-get="/workers/respond?id={{.ID}}&action=accepted" hx-target="#pending-invites">Accept</button></li> -->
-                                    <!-- <li><button data-variant="danger" class="small" hx-get="/workers/respond?id={{.ID}}&action=rejected" hx-target="#pending-invites">Reject</button></li> -->
-                                </menu>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; background: var(--bg-color);">
+                                
+                                <span style="color: var(--text-main);">
+                                    Invite sent to: <strong>{{.WorkerEmail}}</strong>
+                                </span>
+                                
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    {{if eq .Status "pending"}}
+                                        <span class="badge warning">Pending</span>
+                                    {{else if eq .Status "rejected"}}
+                                        <span class="badge danger">Rejected</span>
+                                        
+                                        <form hx-post="/workers/invite" 
+                                            hx-target="#sent-invites"
+                                            hx-swap="innerHTML"
+                                            hx-on::after-request="this.reset()" style="margin: 0;">
+                                            <input type="hidden" name="worker_email" value="{{.WorkerEmail}}">
+                                            <button type="submit" class="outline small" style="margin: 0; padding: 2px 8px;">Resend</button>
+                                        </form>
+                                    {{else}}
+                                        <span class="badge">{{.Status}}</span>
+                                    {{end}}
+                                </div>
+                                
                             </div>
                         {{else}}
-                            <div>No sent invite requests.</div>
+                            <div class="empty-state" style="padding: 10px;">No sent invite requests.</div>
                         {{end}}
                     {{end}}
                 </div>
             </article>
 
             <article class="card">
-                <h3>Invite Worker</h3>
-                <form hx-post="/workers/invite" hx-on::after-request="this.reset()">
-                    <fieldset class="group">
-                        <input type="email" name="worker_email" placeholder="Worker's email address..." required>
-                        <button type="submit">Send Invite</button>
-                    </fieldset>
-                </form>
+                <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Invite Worker</h3>
+                    <form hx-post="/workers/invite" 
+                        hx-target="#sent-invites" 
+                        hx-swap="innerHTML"
+                        hx-on::after-request="if(event.detail.successful) { this.reset(); ot.toast('Request sent' ,'All good', { variant: 'success' }); }" 
+                        style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+                        
+                        <input type="email" 
+                            name="worker_email" 
+                            placeholder="Worker's email address..." 
+                            required 
+                            style="margin: 0; width: 100%; background: var(--surface); border: 1px solid var(--border);">
+                        
+                        <div>
+                            <button type="submit" 
+                                    class="small" 
+                                    data-variant="success" 
+                                    style="margin: 0; padding: 4px 16px;">
+                                Send Invite
+                            </button>
+                        </div>
+                        
+                    </form>
             </article>
         </section>
 

@@ -211,8 +211,8 @@ func (r *TodoRepo) SendInvite(managerEmail string, workerEmail string) error {
 
 func (r *TodoRepo) FetchSentInvites(managerEmail string) ([]models.Relationship, error) {
 	query := `
-			  SELECT id, manager_email, worker_email, created_at FROM relationships
-			  WHERE manager_email = $1 AND status = 'pending'
+			  SELECT id, manager_email, worker_email, status, created_at FROM relationships
+			  WHERE manager_email = $1 AND (status = 'pending' OR status = 'rejected')
 			  ORDER BY created_at DESC`
 	rows, err := r.db.Query(query, managerEmail)
 	if err != nil {
@@ -222,7 +222,7 @@ func (r *TodoRepo) FetchSentInvites(managerEmail string) ([]models.Relationship,
 	var sentInvites []models.Relationship
 	for rows.Next() {
 		var rel models.Relationship
-		err = rows.Scan(&rel.ID, &rel.ManagerEmail, &rel.WorkerEmail, &rel.CreatedAt)
+		err = rows.Scan(&rel.ID, &rel.ManagerEmail, &rel.WorkerEmail, &rel.Status, &rel.CreatedAt)
 		if err == nil {
 			sentInvites = append(sentInvites, rel)
 		}
@@ -269,6 +269,22 @@ func (r *TodoRepo) RespondToInvite(id int, status string) error {
 		"id", id,
 		"status", status)
 	return err
+}
+
+func (r *TodoRepo) DeleteWorkerFromRelationships(managerEmail string, workerEmail string) error {
+	query := `
+			DELETE FROM relationships
+			WHERE manager_email = $1 AND worker_email = $2`
+	result, err := r.db.Exec(query, managerEmail, workerEmail)
+	if err != nil {
+		return err
+	}
+	slog.Debug("database_query_success",
+		"op", "delete worker for the manager",
+		"manager_email", managerEmail,
+		"worker_email", workerEmail,
+		"result", result)
+	return nil
 }
 
 // workers that have accepted my invite

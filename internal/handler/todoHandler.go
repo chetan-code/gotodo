@@ -87,9 +87,24 @@ func (h *TodoHandler) InviteHandler(w http.ResponseWriter, r *http.Request) {
 	if workerEmail != "" {
 		h.repo.SendInvite(managerEmail, workerEmail)
 	}
-	// HTMX Response: Just clear the input and maybe show a "Sent!" toast
-	// For now, we just return an empty string so the form resets if you use hx-on
-	w.Write([]byte("Invite Sent!"))
+	h.FetchSentInvites(w, r)
+}
+
+// fetch all the Sent invites
+func (h *TodoHandler) FetchSentInvites(w http.ResponseWriter, r *http.Request) {
+	//Update sent invites
+	email, err := h.GetEmailFromContext(r)
+	sentInvites, err := h.repo.FetchSentInvites(email)
+	if err != nil {
+		slog.Error("failed_fetch_sent_invites_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := TodoPageData{
+		SentInvites: sentInvites,
+	}
+	h.renderHTMX(w, "sent-invites", data)
 }
 
 // Accept invitation from a manager/boss to be his worker
@@ -103,8 +118,53 @@ func (h *TodoHandler) RespondInviteHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	h.repo.RespondToInvite(id, action)
-	// HTMX Response: Remove the request card from the UI
-	w.Write([]byte(""))
+
+	email, err := h.GetEmailFromContext(r)
+	pendingInvites, err := h.repo.FetchPendingInvites(email)
+	if err != nil {
+		slog.Error("failed_fetch_pending_invites_from_db", "error", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	data := TodoPageData{
+		PendingInvites: pendingInvites,
+	}
+	h.renderHTMX(w, "pending-invites", data)
+}
+
+func (h *TodoHandler) RemoveWorker(w http.ResponseWriter, r *http.Request) {
+	workerEmail := r.URL.Query().Get("worker_email")
+	email, err := h.GetEmailFromContext(r)
+	if err != nil {
+		slog.Error("no_email_from_context", "error", "No user email in context")
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if workerEmail == "" {
+		slog.Error("no_worker_email_in_query", "error", "Provide worker email in request url")
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	err = h.repo.DeleteWorkerFromRelationships(email, workerEmail)
+	if err != nil {
+		slog.Error("failed_delete_worker_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	//Update UI
+	myWorkers, err := h.repo.FetchMyWorkers(email)
+	if err != nil {
+		slog.Error("failed_fetch_my_workers_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	//data to send to html
+	data := TodoPageData{
+		MyWorkers: myWorkers,
+	}
+	h.renderHTMX(w, "your-team", data)
+	return
 }
 
 // Handle post and get todos request - post/fetch all todos

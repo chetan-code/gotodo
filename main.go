@@ -68,6 +68,8 @@ func routing(mux *http.ServeMux, todoHandler *handler.TodoHandler, authHandler *
 	mux.HandleFunc("/todos/delete", authHandler.AuthMiddleware(todoHandler.DeleteHandler))
 	mux.HandleFunc("/workers/invite", authHandler.AuthMiddleware(todoHandler.InviteHandler))
 	mux.HandleFunc("/workers/respond", authHandler.AuthMiddleware(todoHandler.RespondInviteHandler))
+	mux.HandleFunc("/workers/delete", authHandler.AuthMiddleware(todoHandler.RemoveWorker))
+	mux.HandleFunc("/workers/sent", authHandler.AuthMiddleware(todoHandler.FetchSentInvites))
 
 }
 
