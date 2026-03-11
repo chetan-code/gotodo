@@ -1,4 +1,6 @@
 # GoTodo
+Try on Web : https://gotodo-service.onrender.com
+ (NOTE : it may take few seconds to load)
 
 A high-performance, multi-user Todo application built with **Go (Golang)**. This project demonstrates a production-ready backend architecture using Clean Architecture principles, secure OAuth2 authentication, and hypermedia-driven UI updates.
 
