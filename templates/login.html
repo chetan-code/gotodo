@@ -3,51 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - Go Todo App</title>
+    <title>Login - GoTodo</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.js"></script>
+    
     <style>
-        /* Minimal layout CSS to perfectly center the card on the screen */
+        /* Professional Dark Theme Palette */
+        :root {
+            --bg-color: #020617;        /* Deep space slate background */
+            --surface: #0f172a;         /* Dark slate for the card */
+            --border: #1e293b;          /* Subtle dark border line */
+            --text-main: #f8fafc;       /* Crisp white text for readability */
+            --text-muted: #94a3b8;      /* Muted gray/blue for secondary text */
+        }
+
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f9fafb; /* Soft background so the white card pops */
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: system-ui, -apple-system, sans-serif;
         }
+
         .login-container {
             width: 100%;
             max-width: 400px;
-            padding: 1rem;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px 32px;
+            /* Deeper, wider shadow for dark mode depth */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .brand-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        /* Dark Mode Google Button */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            background-color: transparent; /* Transparent looks much better in dark mode */
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-google:hover {
+            background-color: rgba(255, 255, 255, 0.05); /* Very subtle white wash on hover */
+            border-color: var(--text-muted);
+        }
+
+        .btn-google svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        /* Ensure Oat's error alert looks good against dark backgrounds */
+        [role="alert"][data-variant="error"] {
+            background: rgba(239, 68, 68, 0.1); 
+            border: 1px solid #ef4444; 
+            color: #fca5a5;
+            text-align: left;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
         }
     </style>
 </head>
 <body>
     <main class="login-container">
         
-        <article class="card">
+        <article class="login-card">
             
-            <header style="text-align: center; margin-bottom: 1.5rem;">
-                <h2 style="margin-bottom: 0.5rem;">Sign in</h2>
-                <p style="margin: 0; opacity: 0.7;">Access your personal todo list</p>
+            <header style="margin-bottom: 2rem;">
+                <div class="brand-icon">🚀</div>
+                <h1 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; color: var(--text-main);">Welcome to GoTodo</h1>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">Log in to access your personal board</p>
             </header>
 
             {{if .}}
-                <div role="alert" data-variant="error" style="margin-bottom: 1.5rem;">
-                    <strong>Error:</strong> {{.}}
+                <div role="alert" data-variant="error">
+                    <strong style="color: #ef4444;">Error:</strong> {{.}}
                 </div>
             {{end}}
 
-            <a href="/auth/google" class="button" style="display: block; width: 100%; text-align: center;">
-                Login with Google
+            <a href="/auth/google" class="btn-google">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                </svg>
+                Sign in with Google
             </a>
             
-            <footer style="text-align: center; margin-top: 2rem; opacity: 0.7;">
-                <small>We don't store any private profile info!</small>
-            </footer>
-            
         </article>
+        
+        <div class="footer-text">
+            We don't store any private profile info.
+        </div>
         
     </main>
 </body>
