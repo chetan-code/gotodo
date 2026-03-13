@@ -70,25 +70,23 @@
 
 <div data-sidebar-layout="always">
     
-    <nav data-topnav style="border-bottom: 1px solid var(--border); background: var(--bg-color);">
-        <button data-sidebar-toggle class="outline small" style="border: none; font-size: 1.2rem;">☰</button>
-        <strong style="font-size: 1.2rem; letter-spacing: -0.5px;">GoTodo</strong>
+    <nav data-topnav>
+        <button data-sidebar-toggle aria-label="Toggle menu" class="outline">☰</button>
+        <strong>GoTodo</strong>
     </nav>
 
-    <aside data-sidebar style="background: var(--bg-color); border-right: 1px solid var(--border); display: flex; flex-direction: column;">
+    <aside data-sidebar>
         
-        <header style="padding: 1.5rem 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="overflow: hidden;">
-                    <strong style="display: block; line-height: 1.2; font-size: 1.1rem; letter-spacing: -0.5px;">GoTodo</strong>
-                    <small style="color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {{.Email}}
-                    </small>
-                </div>
+        <header style="display: flex; align-items: center; gap: 12px; margin-bottom: 1rem;">
+            <div style="overflow: hidden;">
+                <strong style="display: block; line-height: 1.2; font-size: 1.1rem; letter-spacing: -0.5px;">GoTodo</strong>
+                <small style="color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{.Email}}
+                </small>
             </div>
         </header>
         
-        <nav style="padding: 0 0.8rem; flex-grow: 1;">
+        <nav>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li>
                     <label for="tab-board" class="nav-item">
@@ -108,13 +106,14 @@
             </ul>
         </nav>
 
-        <footer style="padding: 1rem; border-top: 1px solid var(--border);">
+        <footer>
             <a href="/logout" style="text-decoration: none;">
                 <button class="outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: var(--text-muted); border-color: var(--border);">
                     Logout
                 </button>
             </a>
         </footer>
+        
     </aside>
 
     <main>
