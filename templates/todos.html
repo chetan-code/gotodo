@@ -151,10 +151,11 @@
                                 {{else}}
                                     <strong>○ {{.Title}}</strong>
                                 {{end}}
-                                <br>
-                                <small style="color: var(--text-muted);">
-                                    Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}
-                                </small>
+                                <div style="margin-top: 0.5rem;">
+                                    <span class="badge outline" style="font-weight: normal; opacity: 0.9;">
+                                        {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}
+                                    </span>
+                                </div>
                             </div>
                             
                             <div style="display: flex; gap: 8px; flex-shrink: 0;">
