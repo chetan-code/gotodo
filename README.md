@@ -1,8 +1,8 @@
 # GoTodo
-Try on Web : https://gotodo-service.onrender.com
- (NOTE : it may take few seconds to load)
+Try on Web: https://gotodo-service.onrender.com
+*(NOTE: The free instance may take a few seconds to spin up on the first load)*
 
-A high-performance, multi-user Todo application built with **Go (Golang)**. This project demonstrates a production-ready backend architecture using Clean Architecture principles, secure OAuth2 authentication, and hypermedia-driven UI updates.
+A high-performance, collaborative task management application built with **Go (Golang)**. This project demonstrates a production-ready backend architecture using Clean Architecture principles, secure OAuth2 authentication, team-based task delegation, and hypermedia-driven UI updates.
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/b6c50048-025b-4ccd-ad40-979c49828015" width="100%" muted autoplay loop controls>
@@ -12,22 +12,21 @@ A high-performance, multi-user Todo application built with **Go (Golang)**. This
 
 ## Key Technical Features
 
-* **OAuth2 Identity Management:** Integrated with Google OAuth via `goth` for secure user authentication.
+* **Collaborative Task Delegation:** Users can build a "Network" by sending email invites to form a team. Managers can assign tasks to workers, which dynamically route to the worker's dedicated "Inbox" tab.
+* **OAuth2 Identity Management:** Integrated with Google OAuth via `goth` for secure, passwordless user authentication.
 * **State-less JWT Sessions:** Implements JSON Web Tokens (JWT) for session persistence, stored in `HttpOnly` and `Secure` cookies to mitigate XSS and session hijacking.
-* **Hypermedia-driven UI (HTMX):** Uses **HTMX** to perform partial DOM updates. This reduces server-side rendering overhead and eliminates the need for heavy client-side JavaScript frameworks.
+* **Hypermedia-Driven UI (HTMX):** Uses **HTMX** to perform lightning-fast partial DOM updates. This completely eliminates the need for heavy client-side JavaScript frameworks (like React or Vue) while maintaining a Single Page Application (SPA) feel.
+* **Premium UI/UX:** Built on **Oat UI** with custom CSS Flexbox/Grid layouts, featuring a responsive sidebar, dark-mode native styling, and highly constrained, ergonomic layouts for ultra-wide monitors.
 * **Clean Architecture:** Strict separation of concerns between HTTP Handlers, Data Repositories, and Domain Models.
-* **Concurrency & Context:** Leverages Go's `context` package to propagate user identity and cancellation signals across middleware and database layers.
-
-
+* **Concurrency & Context:** Leverages Go's `context` package to safely propagate user identity and cancellation signals across middleware and database layers.
 
 ## Tech Stack
 
-* **Language:** Go (Golang) 1.25.5+
+* **Language:** Go (Golang) v1.25.0
 * **Database:** PostgreSQL (via `pgx/v5`)
-* **Frontend:** Go HTML Templates  + HTMX
+* **Frontend:** Go HTML Templates + HTMX
 * **Auth:** Google OAuth2 + JWT (HS256)
-* **Styling:** Pico CSS
-
+* **Styling:** [Oat UI](https://github.com/knadh/oat) — An ultra-lightweight, semantic CSS framework by @knadh.
 ## System Architecture
 
 The project follows a modular structure to ensure maintainability and testability:
@@ -57,7 +56,7 @@ The project follows a modular structure to ensure maintainability and testabilit
 ## Getting Started
 ### Prerequisites
 
-* Go 1.21 or higher
+* Go 1.20 or higher
 
 * A running PostgreSQL instance
 
@@ -86,3 +85,8 @@ go mod tidy
 go run main.go
 ```
 * The server will start on http://localhost:8080 (or on your modified port)
+
+## Credits & Resources
+
+- **UI Framework:** [Oat UI](https://github.com/knadh/oat) - A minimal, elegant CSS framework designed for building dashboards.
+- **Inter Font:** [Google Fonts](https://fonts.google.com/specimen/Inter) - Used for high legibility and a modern UI feel.
