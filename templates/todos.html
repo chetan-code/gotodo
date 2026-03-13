@@ -5,10 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Go Todo App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@knadh/oat/oat.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
     <style>
+        :root {
+            /* Oat UI uses CSS variables, so overriding the base font family is usually this easy */
+            --font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+        }
         /* Essential CSS for the Tab functionality */
         .tab-panel { display: none; }
         
@@ -18,12 +29,33 @@
             display: block;
         }
 
-        /* Essential CSS to highlight the active tab */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            transition: background 0.2s ease, color 0.2s ease;
+            cursor: pointer;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            /* A very subtle 5% white wash so it feels interactive but doesn't compete with the active tab */
+            background: rgba(255, 255, 255, 0.05); 
+            color: var(--text-main);
+        }
+        /* The active state: high-contrast for dark mode */
         #tab-board:checked ~ [data-sidebar-layout] label[for="tab-board"],
         #tab-inbox:checked ~ [data-sidebar-layout] label[for="tab-inbox"],
         #tab-network:checked ~ [data-sidebar-layout] label[for="tab-network"] {
-            font-weight: bold;
-            text-decoration: underline;
+            /* Uses a subtle white wash that works on ANY dark background */
+            background: rgba(255, 255, 255, 0.08); 
+            color: var(--text-main);
+            /* A vibrant, crisp green accent that refuses to be ignored */
+            box-shadow: inset 4px 0 0 #4ade80; 
         }
 
         /* Allow todo list to scroll if it gets too long */
@@ -38,29 +70,49 @@
 
 <div data-sidebar-layout="always">
     
-    <nav data-topnav>
-        <button data-sidebar-toggle class="outline small">☰</button>
-        <strong>GoTodo</strong>
+    <nav data-topnav style="border-bottom: 1px solid var(--border); background: var(--bg-color);">
+        <button data-sidebar-toggle class="outline small" style="border: none; font-size: 1.2rem;">☰</button>
+        <strong style="font-size: 1.2rem; letter-spacing: -0.5px;">GoTodo</strong>
     </nav>
 
-    <aside data-sidebar>
-        <header>
-            <strong>🚀 GoTodo</strong>
-            <br>
-            <small>{{.Email}}</small>
+    <aside data-sidebar style="background: var(--bg-color); border-right: 1px solid var(--border); display: flex; flex-direction: column;">
+        
+        <header style="padding: 1.5rem 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="overflow: hidden;">
+                    <strong style="display: block; line-height: 1.2; font-size: 1.1rem; letter-spacing: -0.5px;">GoTodo</strong>
+                    <small style="color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{.Email}}
+                    </small>
+                </div>
+            </div>
         </header>
         
-        <nav>
-            <ul>
-                <li><label for="tab-board" style="cursor: pointer; display: block;">My Board</label></li>
-                <li><label for="tab-inbox" style="cursor: pointer; display: block;">Inbox</label></li>
-                <li><label for="tab-network" style="cursor: pointer; display: block;">Network</label></li>
+        <nav style="padding: 0 0.8rem; flex-grow: 1;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li>
+                    <label for="tab-board" class="nav-item">
+                        My Board
+                    </label>
+                </li>
+                <li>
+                    <label for="tab-inbox" class="nav-item">
+                        Inbox
+                    </label>
+                </li>
+                <li>
+                    <label for="tab-network" class="nav-item">
+                        Network
+                    </label>
+                </li>
             </ul>
         </nav>
 
-        <footer>
+        <footer style="padding: 1rem; border-top: 1px solid var(--border);">
             <a href="/logout" style="text-decoration: none;">
-                <button data-variant="danger" class="outline" style="width: 100%;">🚪 Logout</button>
+                <button class="outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: var(--text-muted); border-color: var(--border);">
+                    Logout
+                </button>
             </a>
         </footer>
     </aside>
