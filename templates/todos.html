@@ -52,9 +52,9 @@
         
         <nav>
             <ul>
-                <li><label for="tab-board" style="cursor: pointer; display: block;">📝 My Board</label></li>
-                <li><label for="tab-inbox" style="cursor: pointer; display: block;">📥 Inbox</label></li>
-                <li><label for="tab-network" style="cursor: pointer; display: block;">👥 Network</label></li>
+                <li><label for="tab-board" style="cursor: pointer; display: block;">My Board</label></li>
+                <li><label for="tab-inbox" style="cursor: pointer; display: block;">Inbox</label></li>
+                <li><label for="tab-network" style="cursor: pointer; display: block;">Network</label></li>
             </ul>
         </nav>
 
@@ -68,17 +68,17 @@
     <main>
         
         <section id="panel-board" class="tab-panel">
-            <h2>📝 My Board</h2>
+            <h2 style="max-width: 900px; margin: 0 auto 1.5rem auto;">My Board</h2>
             
             {{block "stats-container" .}}
-            <div id="stats-container" hx-swap-oob="true" style="margin-bottom: 2rem;">
+            <div id="stats-container" hx-swap-oob="true" style="max-width: 900px; margin: 0 auto 2rem auto; display: flex; gap: 12px; align-items: center;">
                 <span class="badge">Total: {{.Stats.Total}}</span>
                 <span class="badge warning">Pending: {{.Stats.Pending}}</span>
                 <span class="badge success">Done: {{.Stats.Completed}}</span>
             </div>
             {{end}}
 
-            <fieldset class="group" style="margin-bottom: 2rem;">
+            <fieldset class="group" style="max-width: 900px; margin: 0 auto 2rem auto;">
                 <input type="search" name="search" placeholder="Search tasks..." hx-get="/todos" hx-target="#todo-list" hx-trigger="keyup changed delay:500ms" style="flex: 1;">
                 
                 <select name="status" hx-get="/todos" hx-target="#todo-list" style="flex: none; width: 20%; min-width: 120px;">
@@ -88,69 +88,92 @@
                 </select>
             </fieldset>
 
-            <article class="card">
+            <article class="card" style="max-width: 900px; margin: 0 auto;">
                 <ul class="todo-list" id="todo-list">
                     {{block "task-list" .}}
                         {{range .Tasks}}
                         <li style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border);">
-                            <div hx-get="/todos/toggle?id={{.ID}}" hx-target="#todo-list" style="cursor: pointer; flex-grow: 1;">
+                            
+                            <div hx-get="/todos/toggle?id={{.ID}}" hx-target="#todo-list" style="cursor: pointer; flex-grow: 1; padding-right: 1.5rem;">
                                 {{if .IsDone}}
-                                    <s>✓ {{.Title}}</s>
+                                    <s style="color: var(--text-muted);">✓ {{.Title}}</s>
                                 {{else}}
                                     <strong>○ {{.Title}}</strong>
                                 {{end}}
                                 <br>
-                                <small>Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}</small>
+                                <small style="color: var(--text-muted);">
+                                    Worker: {{if eq .WorkerEmail $.Email}}Me{{else}}{{.WorkerEmail}}{{end}}
+                                </small>
                             </div>
-                            <button class="outline small" data-variant="danger" hx-delete="/todos/delete?id={{.ID}}" 
-                               hx-target="closest li" 
-                               hx-swap="outerHTML swap:300ms" 
-                               hx-confirm="Delete this task?">&times;</button>
+                            
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                                <button type="button" 
+                                    class="outline small" 
+                                    style="margin: 0;"
+                                    onclick="openEditModal('{{.ID}}', '{{.Title}}', '{{.WorkerEmail}}')">
+                                    Edit
+                                </button>
+                                <button type="button" 
+                                    class="outline small" 
+                                    data-variant="danger" 
+                                    style="margin: 0;"
+                                    hx-delete="/todos/delete?id={{.ID}}" 
+                                    hx-target="closest li" 
+                                    hx-swap="outerHTML swap:300ms" 
+                                    hx-confirm="Delete this task?">
+                                    &times;
+                                </button>
+                            </div>
+                            
                         </li>
                         {{else}}
-                            <div style="text-align: center; padding: 2rem;">✨ All caught up! Time for a coffee.</div>
+                            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">✨ All caught up! Time for a coffee.</div>
                         {{end}}
                     {{end}}
                 </ul>
             </article>
 
-            <article class="card" style="margin-top: 2rem;">
-                <form hx-post="/todos" hx-target="#todo-list" hx-on::after-request="this.reset()"> 
-                    <fieldset class="group">
-                        <input type="text" name="task" placeholder="What needs to be done?" required style="flex: 1;">
-                        
-                        <select name="worker_email" style="flex: none; width: 20%; min-width: 120px;">
-                            <option value="{{.Email}}">Assign: Me</option>
-                            {{range .MyWorkers}}
-                                <option value="{{.}}">Assign: {{.}}</option>
-                            {{end}}
-                        </select>
-                        
-                        <button type="submit" style="flex: none;">Create Task</button>
-                    </fieldset>
-                </form>
-            </article>
+            <article class="card" style="max-width: 900px; margin: 2rem auto 0 auto;">
+                    <form hx-post="/todos" hx-target="#todo-list" hx-on::after-request="this.reset()"> 
+                        <fieldset class="group">
+                            <input type="text" name="task" placeholder="What needs to be done?" required style="flex: 1;">
+                            
+                            <select name="worker_email" style="flex: none; width: 20%; min-width: 120px;">
+                                <option value="{{.Email}}">Assign: Me</option>
+                                {{range .MyWorkers}}
+                                    <option value="{{.}}">Assign: {{.}}</option>
+                                {{end}}
+                            </select>
+                            
+                            <button type="submit" style="flex: none;">Create Task</button>
+                        </fieldset>
+                    </form>
+                </article>
         </section>
 
         <section id="panel-inbox" class="tab-panel">
-            <h2>📥 Inbox</h2>
-            <p>Tasks assigned to you by others.</p>
             
-            <article class="card">
+            <h2 style="max-width: 900px; margin: 0 auto 0.5rem auto;">Inbox</h2>
+            <p style="max-width: 900px; margin: 0 auto 2rem auto; color: var(--text-muted);">Tasks assigned to you by others.</p>
+            
+            <article class="card" style="max-width: 900px; margin: 0 auto;">
                 {{block "inbox-list" .}}
                 <ul class="todo-list" hx-swap-oob="true" id="inbox-list">
                         {{range .AssignedTasks}}
                             <li style="padding: 1rem 0; border-bottom: 1px solid var(--border);">
-                                <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <label style="display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;">
                                     <span>
                                         <input type="checkbox" hx-get="/todos/toggle?id={{.ID}}" hx-target="#inbox-list" {{if .IsDone}}checked{{end}}>
-                                        {{.Title}}
+                                        <!-- this is just false positive due to go template code - ignore error -->
+                                        <span style="{{if .IsDone}}text-decoration: line-through; color: var(--text-muted);{{end}}">
+                                            {{.Title}}
+                                        </span>
                                     </span>
                                 </label>
-                                <small style="display: block; margin-top: 0.5rem;">Assigned by: {{.Email}}</small>
+                                <small style="display: block; margin-top: 0.5rem; color: var(--text-muted);">Assigned by: {{.Email}}</small>
                             </li>
                         {{else}}
-                            <div style="text-align: center; padding: 2rem;">No tasks from others yet.</div>
+                            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No tasks from others yet.</div>
                         {{end}}
                 </ul>
                 {{end}}
@@ -158,40 +181,41 @@
         </section>
 
         <section id="panel-network" class="tab-panel">
-            <h2>👥 Network</h2>
-            <p>Manage your workers and invites.</p>
             
-            <article class="card" style="margin-bottom: 2rem;">
-            <div id="your-team">
-                {{block "your-team" .}}
-                    <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Your Team</h3>
-                    
-                    {{range .MyWorkers}}
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; background: var(--surface);">
-                            
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 1.2rem; opacity: 0.8;">👤</span>
-                                <strong style="color: var(--text-main);">{{.}}</strong>
+            <h2 style="max-width: 900px; margin: 0 auto 0.5rem auto;">Network</h2>
+            <p style="max-width: 900px; margin: 0 auto 2rem auto; color: var(--text-muted);">Manage your workers and invites.</p>
+            
+            <article class="card" style="max-width: 900px; margin: 0 auto 2rem auto;">
+                <div id="your-team">
+                    {{block "your-team" .}}
+                        <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Your Team</h3>
+                        
+                        {{range .MyWorkers}}
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; background: var(--surface);">
+                                
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.2rem; opacity: 0.8;">👤</span>
+                                    <strong style="color: var(--text-main);">{{.}}</strong>
+                                </div>
+                                
+                                <button class="outline small" 
+                                        data-variant="danger" 
+                                        hx-delete="/workers/delete?worker_email={{.}}" 
+                                        hx-target="#your-team" 
+                                        hx-swap="innerHTML"
+                                        hx-confirm="Remove this worker from your team? They will no longer see your tasks.">
+                                    Remove
+                                </button>
+                                
                             </div>
-                            
-                            <button class="outline small" 
-                                    data-variant="danger" 
-                                    hx-delete="/workers/delete?worker_email={{.}}" 
-                                    hx-target="#your-team" 
-                                    hx-swap="innerHTML"
-                                    hx-confirm="Remove this worker from your team? They will no longer see your tasks.">
-                                Remove
-                            </button>
-                            
-                        </div>
-                    {{else}}
-                        <div class="empty-state" style="padding: 10px;">You haven't added anyone to your team yet.</div>
+                        {{else}}
+                            <div class="empty-state" style="padding: 10px; color: var(--text-muted);">You haven't added anyone to your team yet.</div>
+                        {{end}}
                     {{end}}
-                {{end}}
-            </div>
+                </div>
             </article>
 
-            <article class="card" style="margin-bottom: 2rem;">
+            <article class="card" style="max-width: 900px; margin: 0 auto 2rem auto;">
                 <div id="pending-invites">
                     {{block "pending-invites" .}}
                         <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Pending Invites</h3>
@@ -224,13 +248,13 @@
                                 
                             </div>
                         {{else}}
-                            <div class="empty-state" style="padding: 10px;">No pending requests.</div>
+                            <div class="empty-state" style="padding: 10px; color: var(--text-muted);">No pending requests.</div>
                         {{end}}
                     {{end}}
                 </div>
             </article>
 
-            <article class="card" style="margin-bottom: 2rem;">
+            <article class="card" style="max-width: 900px; margin: 0 auto 2rem auto;">
                 <div id="sent-invites">
                     {{block "sent-invites" .}}
                         <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Sent Invites</h3>
@@ -245,6 +269,13 @@
                                 <div style="display: flex; gap: 10px; align-items: center;">
                                     {{if eq .Status "pending"}}
                                         <span class="badge warning">Pending</span>
+                                        <form hx-post="/workers/invite/delete" 
+                                            hx-target="#sent-invites"
+                                            hx-swap="innerHTML"
+                                            hx-on::after-request="this.reset()" style="margin: 0;">
+                                            <input type="hidden" name="worker_email" value="{{.WorkerEmail}}">
+                                            <button type="submit" class="outline small" style="margin: 0; padding: 2px 8px;">Delete</button>
+                                        </form>
                                     {{else if eq .Status "rejected"}}
                                         <span class="badge danger">Rejected</span>
                                         
@@ -255,6 +286,14 @@
                                             <input type="hidden" name="worker_email" value="{{.WorkerEmail}}">
                                             <button type="submit" class="outline small" style="margin: 0; padding: 2px 8px;">Resend</button>
                                         </form>
+
+                                        <form hx-post="/workers/invite/delete" 
+                                            hx-target="#sent-invites"
+                                            hx-swap="innerHTML"
+                                            hx-on::after-request="this.reset()" style="margin: 0;">
+                                            <input type="hidden" name="worker_email" value="{{.WorkerEmail}}">
+                                            <button type="submit" class="outline small" style="margin: 0; padding: 2px 8px;">Delete</button>
+                                        </form>
                                     {{else}}
                                         <span class="badge">{{.Status}}</span>
                                     {{end}}
@@ -262,13 +301,13 @@
                                 
                             </div>
                         {{else}}
-                            <div class="empty-state" style="padding: 10px;">No sent invite requests.</div>
+                            <div class="empty-state" style="padding: 10px; color: var(--text-muted);">No sent invite requests.</div>
                         {{end}}
                     {{end}}
                 </div>
             </article>
 
-            <article class="card">
+            <article class="card" style="max-width: 900px; margin: 0 auto;">
                 <h3 style="margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--text-main);">Invite Worker</h3>
                     <form hx-post="/workers/invite" 
                         hx-target="#sent-invites" 
@@ -297,5 +336,47 @@
 
     </main>
 </div>
+    <dialog id="edit-modal">
+        <form hx-post="/todos/edit" 
+            hx-target="#todo-list" 
+            hx-on::after-request="if(event.detail.successful) { this.closest('dialog').close(); ot.toast('Task updated', 'Success', { variant: 'success' }); }">
+            
+            <header>
+                <h3 style="margin: 0;">Edit Task</h3>
+            </header>
+            
+            <div class="vstack">
+                <input type="hidden" name="id" id="edit-id">
+                
+                <label>Task Description 
+                    <input type="text" name="title" id="edit-title" required>
+                </label>
+                
+                <label>Assignee 
+                    <select name="worker_email" id="edit-worker">
+                        <option value="{{.Email}}">Assign: Me</option>
+                        {{range .MyWorkers}}
+                            <option value="{{.}}">Assign: {{.}}</option>
+                        {{end}}
+                    </select>
+                </label>
+            </div>
+            
+            <footer>
+                <button type="button" commandfor="edit-modal" command="close" class="outline">Cancel</button>
+                <button type="submit" data-variant="success">Save</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <script>
+        // We still use 4 lines of JS just to pre-fill the form with the specific task's data!
+        function openEditModal(id, title, worker) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-title').value = title;
+            document.getElementById('edit-worker').value = worker;
+            document.getElementById('edit-modal').showModal();
+        }
+    </script>
 </body>
 </html>

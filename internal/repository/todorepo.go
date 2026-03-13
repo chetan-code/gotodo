@@ -103,6 +103,30 @@ func (r *TodoRepo) AddTask(email string, title string, workerEmail string) error
 	return err
 }
 
+func (r *TodoRepo) EditTask(email string, id int, title string, workerEmail string) error {
+	query := `
+				UPDATE todos SET title = $1, worker_email = $2
+				WHERE email = $3 AND id = $4`
+	result, err := r.db.Exec(query, title, workerEmail, email, id)
+	if err != nil {
+		slog.Error("database_query_failed",
+			"op", "update task in table",
+			"error", err,
+			"email", email,
+			"title", title,
+			"worker_email", workerEmail,
+		)
+		return err
+	}
+
+	slog.Debug("database_query_success",
+		"op", "insert into table",
+		"id", id,
+		"result", result,
+	)
+	return nil
+}
+
 func (r *TodoRepo) DeleteTask(id int, email string) error {
 	query := "DELETE FROM todos WHERE id = $1 AND email = $2"
 	_, err := r.db.Exec(query, id, email)
@@ -229,8 +253,22 @@ func (r *TodoRepo) FetchSentInvites(managerEmail string) ([]models.Relationship,
 	}
 	slog.Debug("database_query_success",
 		"op", "select sent invites by manager",
-		"worker_email", managerEmail)
+		"manager_email", managerEmail)
 	return sentInvites, nil
+}
+
+func (r *TodoRepo) DeleteSentInvite(managerEmail string, workerEmail string) error {
+	query := `DELETE FROM relationships
+				WHERE manager_email = $1 AND worker_email = $2 AND (status = 'pending' OR status = 'rejected')`
+	result, err := r.db.Exec(query, managerEmail, workerEmail)
+	if err != nil {
+		return err
+	}
+	slog.Debug("database_query_success",
+		"op", "delete sent invites by manager",
+		"result", result,
+		"worker_email", workerEmail)
+	return nil
 }
 
 func (r *TodoRepo) FetchPendingInvites(workerEmail string) ([]models.Relationship, error) {
@@ -272,15 +310,43 @@ func (r *TodoRepo) RespondToInvite(id int, status string) error {
 }
 
 func (r *TodoRepo) DeleteWorkerFromRelationships(managerEmail string, workerEmail string) error {
-	query := `
+	//start a transaction for multiple queries
+	transaction, err := r.db.Begin()
+	if err != nil {
+		slog.Error("db_transaction_failed", "error", err)
+		return err
+	}
+	defer transaction.Rollback() //if any error occur between - just rollback
+	deleteQuery := `
 			DELETE FROM relationships
 			WHERE manager_email = $1 AND worker_email = $2`
-	result, err := r.db.Exec(query, managerEmail, workerEmail)
+	result, err := transaction.Exec(deleteQuery, managerEmail, workerEmail)
 	if err != nil {
+		slog.Error("db_transaction_failed", "error", err)
 		return err
 	}
 	slog.Debug("database_query_success",
 		"op", "delete worker for the manager",
+		"manager_email", managerEmail,
+		"worker_email", workerEmail,
+		"result", result)
+	//assign all task for the fired worker back to manager
+	updateQuery := `UPDATE todos
+			SET worker_email = $1
+			WHERE email = $1 AND worker_email = $2`
+	result, err = transaction.Exec(updateQuery, managerEmail, workerEmail)
+	if err != nil {
+		slog.Error("db_transaction_failed", "error", err)
+		return err
+	}
+	//commit the transaction
+	err = transaction.Commit()
+	if err != nil {
+		slog.Error("db_transaction_failed", "error", err)
+		return err
+	}
+	slog.Debug("database_query_success",
+		"op", "reassigned removed worker task back to manager",
 		"manager_email", managerEmail,
 		"worker_email", workerEmail,
 		"result", result)

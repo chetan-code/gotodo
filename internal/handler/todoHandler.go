@@ -77,7 +77,7 @@ func (h *TodoHandler) renderHTMX(w http.ResponseWriter, templateName string, dat
 }
 
 // Send a invitation to be a worker for me
-func (h *TodoHandler) InviteHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) SendNewInvite(w http.ResponseWriter, r *http.Request) {
 	managerEmail, err := h.GetEmailFromContext(r)
 	workerEmail := r.FormValue("worker_email")
 	if err != nil {
@@ -86,6 +86,24 @@ func (h *TodoHandler) InviteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if workerEmail != "" {
 		h.repo.SendInvite(managerEmail, workerEmail)
+	}
+	h.FetchSentInvites(w, r)
+}
+
+func (h *TodoHandler) DeleteInvite(w http.ResponseWriter, r *http.Request) {
+	managerEmail, err := h.GetEmailFromContext(r)
+	workerEmail := r.FormValue("worker_email")
+	if err != nil {
+		HomeRedirect(w, r)
+		return
+	}
+	if workerEmail != "" {
+		err := h.repo.DeleteSentInvite(managerEmail, workerEmail)
+		if err != nil {
+			slog.Error("failed_delete_sent_invites_from_db", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 	h.FetchSentInvites(w, r)
 }
@@ -108,7 +126,7 @@ func (h *TodoHandler) FetchSentInvites(w http.ResponseWriter, r *http.Request) {
 }
 
 // Accept invitation from a manager/boss to be his worker
-func (h *TodoHandler) RespondInviteHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) RespondToNewInvite(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	action := r.URL.Query().Get("action") //accepted or rejected
 	id, err := strconv.Atoi(idStr)
@@ -168,7 +186,7 @@ func (h *TodoHandler) RemoveWorker(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle post and get todos request - post/fetch all todos
-func (h *TodoHandler) TodoHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) TaskRequestHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		h.PostNewTask(w, r)
@@ -301,7 +319,7 @@ func (h *TodoHandler) FetchAllTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 // Toggle task status from pending to done and vice versa
-func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) ToggleTask(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id") //get email form context (context is prepared by auth middleware)
 	email, err := h.GetEmailFromContext(r)
 	if err != nil {
@@ -367,8 +385,59 @@ func (h *TodoHandler) ToggleHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func (h *TodoHandler) EditTask(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	email, err := h.GetEmailFromContext(r)
+	if err != nil {
+		HomeRedirect(w, r)
+		return
+	}
+	//get value from form
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		slog.Error("string_conv_err", "error", err, "id", id)
+		return
+	}
+	title := r.FormValue("title")
+	if title == "" {
+		http.Error(w, "Empty Task Title", http.StatusBadRequest)
+		slog.Error("empty_task_title_update", "title", title)
+		return
+	}
+	workerEmail := r.FormValue("worker_email")
+	if workerEmail == "" {
+		http.Error(w, "Empty Worker Email", http.StatusBadRequest)
+		slog.Error("empty_worker_email_update", "title", title, "worker_email", workerEmail)
+		return
+	}
+	err = h.repo.EditTask(email, id, title, workerEmail)
+	if err != nil {
+		slog.Error("failed_edit_task_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	tasks, err := h.repo.FetchTasks(email, "", "")
+	if err != nil {
+		slog.Error("failed_task_fetch_from_db", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	//render full page
+	//data to send to html
+	data := TodoPageData{
+		Email: email,
+		Tasks: tasks,
+	}
+	h.renderHTMX(w, "task-list", data)
+	return
+}
+
 // Delete task based on id from users todos
-func (h *TodoHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	email, err := h.GetEmailFromContext(r)
 	if err != nil {
@@ -406,7 +475,7 @@ func (h *TodoHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Clear all tasks from users todos
-func (h *TodoHandler) ClearHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) ClearAllTasks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

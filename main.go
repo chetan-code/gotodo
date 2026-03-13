@@ -62,12 +62,14 @@ func routing(mux *http.ServeMux, todoHandler *handler.TodoHandler, authHandler *
 	mux.HandleFunc("/", handler.HomeRedirect)
 
 	//we will protect them - only user with valid auth and jwt can access this routes
-	mux.HandleFunc("/todos", authHandler.AuthMiddleware(todoHandler.TodoHandler))
-	mux.HandleFunc("/todos/clear", authHandler.AuthMiddleware(todoHandler.ClearHandler))
-	mux.HandleFunc("/todos/toggle", authHandler.AuthMiddleware(todoHandler.ToggleHandler))
-	mux.HandleFunc("/todos/delete", authHandler.AuthMiddleware(todoHandler.DeleteHandler))
-	mux.HandleFunc("/workers/invite", authHandler.AuthMiddleware(todoHandler.InviteHandler))
-	mux.HandleFunc("/workers/respond", authHandler.AuthMiddleware(todoHandler.RespondInviteHandler))
+	mux.HandleFunc("/todos", authHandler.AuthMiddleware(todoHandler.TaskRequestHandler))
+	mux.HandleFunc("/todos/clear", authHandler.AuthMiddleware(todoHandler.ClearAllTasks))
+	mux.HandleFunc("/todos/toggle", authHandler.AuthMiddleware(todoHandler.ToggleTask))
+	mux.HandleFunc("/todos/delete", authHandler.AuthMiddleware(todoHandler.DeleteTask))
+	mux.HandleFunc("/todos/edit", authHandler.AuthMiddleware(todoHandler.EditTask))
+	mux.HandleFunc("/workers/invite", authHandler.AuthMiddleware(todoHandler.SendNewInvite))
+	mux.HandleFunc("/workers/invite/delete", authHandler.AuthMiddleware(todoHandler.DeleteInvite))
+	mux.HandleFunc("/workers/respond", authHandler.AuthMiddleware(todoHandler.RespondToNewInvite))
 	mux.HandleFunc("/workers/delete", authHandler.AuthMiddleware(todoHandler.RemoveWorker))
 	mux.HandleFunc("/workers/sent", authHandler.AuthMiddleware(todoHandler.FetchSentInvites))
 
